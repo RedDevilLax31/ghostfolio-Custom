@@ -2,7 +2,7 @@ name: ghostfolio
 services:
   ghostfolio:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: ghostfolio
     restart: unless-stopped

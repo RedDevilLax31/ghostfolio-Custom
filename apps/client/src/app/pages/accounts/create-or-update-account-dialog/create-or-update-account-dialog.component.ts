@@ -113,6 +113,7 @@ export class GfCreateOrUpdateAccountDialogComponent {
 
     this.accountForm = this.formBuilder.group({
       accountId: [{ disabled: true, value: this.data.account.id }],
+      accountType: [this.data.account.accountType],
       balance: [this.data.account.balance, Validators.required],
       comment: [this.data.account.comment],
       currency: [this.data.account.currency, Validators.required],
@@ -181,6 +182,7 @@ export class GfCreateOrUpdateAccountDialogComponent {
 
   protected async onSubmit() {
     const account: CreateAccountDto | UpdateAccountDto = {
+      accountType: this.accountForm.get('accountType')?.value ?? null,
       balance: this.accountForm.get('balance')?.value,
       comment: getStringOrNull(this.accountForm.get('comment')?.value),
       currency: this.accountForm.get('currency')?.value,

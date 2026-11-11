@@ -18,7 +18,7 @@
 - [ ] Add 401(k) handling (needs to handle roth vs trad sections of the account)
   - [ ] Add proxy values for 401(k) holdings to map to current prices
 - [x] Add Platform selection (vanguard, Fidelity, JNJ 401k) 9% to 18% = 9% used
-- [ ] Add Account type (Roth IRA, Taxable Brokerage, Traditional IRA, Roth 401K, Traditional 401K)
+- [x] Add Account type (Roth IRA, Taxable Brokerage, Traditional IRA, Roth 401K, Traditional 401K) 19% to 24% = 5% used
 
 ## Planning
 

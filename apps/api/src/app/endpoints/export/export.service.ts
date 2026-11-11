@@ -103,6 +103,7 @@ export class ExportService {
       .map(
         ({
           balances,
+          accountType,
           comment,
           currency,
           id,
@@ -125,6 +126,7 @@ export class ExportService {
                 };
               }
             ),
+            accountType,
             comment,
             currency,
             id,

@@ -105,7 +105,7 @@ export class GfAccountsTableComponent {
   protected readonly dataSource = new MatTableDataSource<AccountWithValue>([]);
 
   protected readonly displayedColumns = computed(() => {
-    const columns = ['status', 'account', 'platform'];
+    const columns = ['status', 'account', 'platform', 'accountType'];
 
     if (this.showActivitiesCount()) {
       columns.push('activitiesCount');

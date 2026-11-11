@@ -115,6 +115,42 @@
       ></td>
     </ng-container>
 
+    <ng-container matColumnDef="accountType">
+      <th
+        *matHeaderCellDef
+        class="d-none d-lg-table-cell px-1"
+        mat-header-cell
+        mat-sort-header
+      >
+        <ng-container i18n>Account Type</ng-container>
+      </th>
+      <td
+        *matCellDef="let element"
+        class="d-none d-lg-table-cell px-1"
+        mat-cell
+      >
+        @switch (element.accountType) {
+          @case ('ROTH') {
+            <ng-container i18n>Roth</ng-container>
+          }
+          @case ('TAXABLE') {
+            <ng-container i18n>Taxable</ng-container>
+          }
+          @case ('TRADITIONAL') {
+            <ng-container i18n>Traditional</ng-container>
+          }
+          @default {
+            <span>-</span>
+          }
+        }
+      </td>
+      <td
+        *matFooterCellDef
+        class="d-none d-lg-table-cell px-1"
+        mat-footer-cell
+      ></td>
+    </ng-container>
+
     <ng-container matColumnDef="activitiesCount">
       <th
         *matHeaderCellDef

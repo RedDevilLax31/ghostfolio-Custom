@@ -1,5 +1,6 @@
 import type { AccessLevel } from './access-level.type';
 import type { AccessWithGranteeUser } from './access-with-grantee-user.type';
+import type { AccountType } from './account-type.type';
 import type { AccountWithBalance } from './account-with-balance.type';
 import type { AccountWithPlatform } from './account-with-platform.type';
 import type { AccountWithValue } from './account-with-value.type';
@@ -34,6 +35,7 @@ export type {
   AccessWithGranteeUser,
   AccountWithBalance,
   AccountWithPlatform,
+  AccountType,
   AccountWithValue,
   AiPromptMode,
   BenchmarkTrend,

@@ -1,10 +1,12 @@
 import { COMMENT_MAXIMUM_LENGTH } from '@ghostfolio/common/config';
+import type { AccountType } from '@ghostfolio/common/types';
 import { IsCurrencyCode } from '@ghostfolio/common/validators/is-currency-code';
 
 import { Transform, TransformFnParams } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -39,6 +41,10 @@ export class CreateAccountDto {
 
   @IsString()
   name: string;
+
+  @IsIn(['ROTH', 'TAXABLE', 'TRADITIONAL'])
+  @IsOptional()
+  accountType?: AccountType | null;
 
   @IsString()
   @ValidateIf((_object, value) => value !== null)

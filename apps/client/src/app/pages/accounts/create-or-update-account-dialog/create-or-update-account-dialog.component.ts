@@ -24,14 +24,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
-  AbstractControl,
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
-  ValidatorFn,
   Validators
 } from '@angular/forms';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -40,8 +37,7 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { Observable } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { MatSelectModule } from '@angular/material/select';
 
 import { CreateOrUpdateAccountDialogParams } from './interfaces/interfaces';
 
@@ -53,11 +49,11 @@ import { CreateOrUpdateAccountDialogParams } from './interfaces/interfaces';
     GfCurrencySelectorComponent,
     GfEntityLogoComponent,
     GfTagsSelectorComponent,
-    MatAutocompleteModule,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     ReactiveFormsModule
   ],
   selector: 'gf-create-or-update-account-dialog',
@@ -69,7 +65,6 @@ export class GfCreateOrUpdateAccountDialogComponent {
 
   protected accountForm: FormGroup;
   protected currencies: string[] = [];
-  protected filteredPlatforms: Observable<Platform[]> | undefined;
   protected hasPermissionToCreateOwnTag: boolean;
   protected platforms: Platform[] = [];
   protected tagsAvailable: Tag[] = [];
@@ -122,7 +117,7 @@ export class GfCreateOrUpdateAccountDialogComponent {
       comment: [this.data.account.comment],
       currency: [this.data.account.currency, Validators.required],
       name: [this.data.account.name, Validators.required],
-      platformId: [null, this.autocompleteObjectValidator()],
+      platformId: [null],
       tags: [
         this.data.account.tags?.map(({ id, name }) => {
           return {
@@ -177,35 +172,7 @@ export class GfCreateOrUpdateAccountDialogComponent {
         },
         { emitEvent: false }
       );
-
-      this.filteredPlatforms = this.accountForm
-        .get('platformId')
-        ?.valueChanges.pipe(
-          startWith(''),
-          map((value: Platform | string) => {
-            const name = typeof value === 'string' ? value : value?.name;
-            return name ? this.filter(name) : this.platforms.slice();
-          })
-        );
     });
-  }
-
-  protected autoCompleteCheck() {
-    const inputValue = this.accountForm.get('platformId')?.value;
-
-    if (typeof inputValue === 'string') {
-      const matchingEntry = this.platforms.find(({ name }) => {
-        return name === inputValue;
-      });
-
-      if (matchingEntry) {
-        this.accountForm.get('platformId')?.setValue(matchingEntry);
-      }
-    }
-  }
-
-  protected displayFn(platform: Platform) {
-    return platform?.name ?? '';
   }
 
   protected onCancel() {
@@ -256,23 +223,5 @@ export class GfCreateOrUpdateAccountDialogComponent {
     } catch (error) {
       console.error(error);
     }
-  }
-
-  private autocompleteObjectValidator(): ValidatorFn {
-    return (control: AbstractControl) => {
-      if (control.value && typeof control.value === 'string') {
-        return { invalidAutocompleteObject: { value: control.value } };
-      }
-
-      return null;
-    };
-  }
-
-  private filter(value: string): Platform[] {
-    const filterValue = value.toLowerCase();
-
-    return this.platforms.filter(({ name }) => {
-      return name?.toLowerCase().startsWith(filterValue);
-    });
   }
 }

@@ -17,6 +17,7 @@ import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { internalRoutes, publicRoutes } from '@ghostfolio/common/routes/routes';
 import { DateRange } from '@ghostfolio/common/types';
 import { GfAssistantComponent } from '@ghostfolio/ui/assistant/assistant.component';
+import { GF_ENVIRONMENT } from '@ghostfolio/ui/environment';
 import { GfLogoComponent } from '@ghostfolio/ui/logo';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
@@ -88,6 +89,7 @@ export class GfHeaderComponent implements OnChanges {
 
   public readonly signOut = output<void>();
 
+  protected readonly isDevelopment = !inject(GF_ENVIRONMENT).production;
   protected readonly assistantElement =
     viewChild.required<GfAssistantComponent>('assistant');
   protected readonly assistentMenuTriggerElement =

@@ -23,6 +23,18 @@
       margin: 0;
     }
 
+    .development-badge {
+      background-color: #f59e0b;
+      border-radius: 0.25rem;
+      color: #1c1917;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      margin: 0 0.75rem;
+      padding: 0.35rem 0.45rem;
+    }
+
     .mdc-button {
       color: var(--mdc-text-button-label-text-color);
 
@@ -37,6 +49,14 @@
 
         &.rotate-90 {
           transform: rotate(90deg);
+        }
+      }
+
+      @media (max-width: 575.98px) {
+        :host .mat-toolbar .development-badge {
+          font-size: 0.65rem;
+          margin: 0 0.5rem;
+          padding: 0.3rem 0.35rem;
         }
       }
     }

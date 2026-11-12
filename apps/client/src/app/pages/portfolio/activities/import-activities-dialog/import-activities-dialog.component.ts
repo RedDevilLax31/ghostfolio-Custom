@@ -3,7 +3,8 @@ import { UserService } from '@ghostfolio/client/services/user/user.service';
 import {
   AI_ACTIVITIES_FILE_MAXIMUM_SIZE,
   AI_MAX_ACTIVITIES,
-  DEFAULT_DATE_RANGE
+  DEFAULT_DATE_RANGE,
+  TAG_ID_DRAFT
 } from '@ghostfolio/common/config';
 import {
   CreateAccountWithBalancesDto,
@@ -12,6 +13,7 @@ import {
   CreatePlatformDto,
   CreateTagDto
 } from '@ghostfolio/common/dtos';
+import { downloadAsFile } from '@ghostfolio/common/helper';
 import {
   Activity,
   AiActivityRow,
@@ -117,6 +119,11 @@ export class GfImportActivitiesDialogComponent {
       'https://github.com/ghostfolio/ghostfolio/blob/main/test/import/ok/sample.csv'
   };
 
+  private static readonly FILE_FORMAT_XLSX: FileFormat = {
+    extensions: ['xlsx'],
+    name: 'Excel'
+  };
+
   private static readonly FILE_FORMAT_JSON: FileFormat = {
     extensions: ['json'],
     name: 'JSON',
@@ -126,7 +133,8 @@ export class GfImportActivitiesDialogComponent {
 
   private static readonly FILE_FORMATS: FileFormat[] = [
     GfImportActivitiesDialogComponent.FILE_FORMAT_CSV,
-    GfImportActivitiesDialogComponent.FILE_FORMAT_JSON
+    GfImportActivitiesDialogComponent.FILE_FORMAT_JSON,
+    GfImportActivitiesDialogComponent.FILE_FORMAT_XLSX
   ];
 
   private static readonly FILE_FORMATS_OF_GHOSTFOLIO_AI: FileFormat[] = [
@@ -146,7 +154,8 @@ export class GfImportActivitiesDialogComponent {
   private static readonly FILE_FORMATS_WITH_GHOSTFOLIO_AI = sortBy(
     [
       ...GfImportActivitiesDialogComponent.FILE_FORMATS_OF_GHOSTFOLIO_AI,
-      GfImportActivitiesDialogComponent.FILE_FORMAT_JSON
+      GfImportActivitiesDialogComponent.FILE_FORMAT_JSON,
+      GfImportActivitiesDialogComponent.FILE_FORMAT_XLSX
     ],
     ({ name }) => {
       return name;
@@ -155,6 +164,11 @@ export class GfImportActivitiesDialogComponent {
 
   protected readonly assetProfileForm = new FormGroup({
     assetProfileIdentifier: new FormControl<PortfolioPosition | null>(null, {
+      validators: [Validators.required]
+    })
+  });
+  protected readonly accountForm = new FormGroup({
+    accountId: new FormControl<string | null>(null, {
       validators: [Validators.required]
     })
   });
@@ -189,6 +203,8 @@ export class GfImportActivitiesDialogComponent {
   protected pageIndex = 0;
   protected readonly pageSize = 8;
   protected rowsWithoutMatch: AiActivityRow[] = [];
+  protected skippedRows = 0;
+  protected skippedRowsFileContent?: string;
   protected selectedActivities: Activity[] = [];
   protected readonly sortColumn = 'date';
   protected readonly sortDirection: SortDirection = 'desc';
@@ -225,6 +241,10 @@ export class GfImportActivitiesDialogComponent {
     return this.isGhostfolioAiEnabled
       ? GfImportActivitiesDialogComponent.FILE_FORMATS_WITH_GHOSTFOLIO_AI
       : GfImportActivitiesDialogComponent.FILE_FORMATS;
+  }
+
+  protected get selectedAccountId() {
+    return this.accountForm.controls.accountId.value ?? undefined;
   }
 
   public ngOnInit() {
@@ -294,6 +314,7 @@ export class GfImportActivitiesDialogComponent {
         activities: this.selectedActivities,
         assetProfiles: this.assetProfiles,
         platforms: this.platforms,
+        selectedAccountId: this.selectedAccountId,
         tags: this.tags
       });
 
@@ -327,6 +348,18 @@ export class GfImportActivitiesDialogComponent {
     stepper: MatStepper;
   }) {
     if (this.importStep !== ImportStep.UPLOAD_FILE) {
+      return;
+    }
+
+    if (!this.accountForm.valid) {
+      this.snackBar.open(
+        $localize`Please select an account first.`,
+        undefined,
+        {
+          duration: ms('3 seconds')
+        }
+      );
+
       return;
     }
 
@@ -391,6 +424,8 @@ export class GfImportActivitiesDialogComponent {
     this.isMaxActivitiesOfGhostfolioAiReached = false;
     this.pageIndex = 0;
     this.rowsWithoutMatch = [];
+    this.skippedRows = 0;
+    this.skippedRowsFileContent = undefined;
     this.assetProfileForm.controls.assetProfileIdentifier.enable();
 
     aStepper.reset();
@@ -413,6 +448,7 @@ export class GfImportActivitiesDialogComponent {
       return await this.importActivitiesService.importCsv({
         fileContent: await file.text(),
         isDryRun: true,
+        selectedAccountId: this.selectedAccountId,
         userAccounts: this.data.user.accounts
       });
     } catch {
@@ -448,13 +484,64 @@ export class GfImportActivitiesDialogComponent {
     return undefined;
   }
 
-  private handleFile({ file, stepper }: { file: File; stepper: MatStepper }) {
+  private async handleFile({
+    file,
+    stepper
+  }: {
+    file: File;
+    stepper: MatStepper;
+  }) {
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
     this.details = [];
     this.errorMessages = [];
     this.isMaxActivitiesOfGhostfolioAiReached = false;
     this.rowsWithoutMatch = [];
+    this.skippedRows = 0;
+    this.skippedRowsFileContent = undefined;
+
+    if (fileExtension === 'xlsx') {
+      this.snackBar.open('⏳ ' + $localize`Validating data...`);
+
+      try {
+        const {
+          activities,
+          assetProfiles,
+          skippedRows,
+          skippedRowsFileContent
+        } = await this.importActivitiesService.importXlsx({
+          file,
+          isDryRun: true,
+          currency: this.data.user.settings.baseCurrency ?? 'USD',
+          platformName:
+            this.data.user.accounts.find(
+              ({ id }) => id === this.accountForm.controls.accountId.value
+            )?.platform?.name ?? undefined,
+          selectedAccountId: this.accountForm.controls.accountId.value!,
+          userAccounts: this.data.user.accounts
+        });
+
+        this.activities = activities;
+        this.assetProfiles = assetProfiles;
+        this.tags = [{ id: TAG_ID_DRAFT, name: 'DRAFT' }];
+        this.skippedRows = skippedRows;
+        this.skippedRowsFileContent = skippedRowsFileContent;
+        this.dataSource = new MatTableDataSource(activities.reverse());
+        this.pageIndex = 0;
+        this.totalItems = activities.length;
+      } catch (error) {
+        console.error(error);
+        this.handleImportError({
+          activities: error?.error?.activities ?? [],
+          error
+        });
+      } finally {
+        this.snackBar.dismiss();
+        this.showSelectActivitiesStep(stepper);
+      }
+
+      return;
+    }
 
     if (
       this.isGhostfolioAiEnabled &&
@@ -517,6 +604,7 @@ export class GfImportActivitiesDialogComponent {
                 assetProfiles: content.assetProfiles,
                 isDryRun: true,
                 platforms: content.platforms,
+                selectedAccountId: this.selectedAccountId,
                 tags: content.tags
               });
 
@@ -538,6 +626,7 @@ export class GfImportActivitiesDialogComponent {
               await this.importActivitiesService.importCsv({
                 fileContent,
                 isDryRun: true,
+                selectedAccountId: this.selectedAccountId,
                 userAccounts: this.data.user.accounts
               });
 
@@ -647,7 +736,8 @@ export class GfImportActivitiesDialogComponent {
             this.importActivitiesService.importJson({
               activities,
               assetProfiles,
-              isDryRun: true
+              isDryRun: true,
+              selectedAccountId: this.selectedAccountId
             })
           );
         }),
@@ -687,6 +777,19 @@ export class GfImportActivitiesDialogComponent {
           this.showSelectActivitiesStep(stepper);
         }
       });
+  }
+
+  protected downloadSkippedRows() {
+    if (!this.skippedRowsFileContent) {
+      return;
+    }
+
+    downloadAsFile({
+      content: this.skippedRowsFileContent,
+      contentType: 'text/csv',
+      fileName: 'ghostfolio-skipped-import-rows.csv',
+      format: 'string'
+    });
   }
 
   private handleImportError({

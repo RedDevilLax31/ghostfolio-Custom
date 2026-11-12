@@ -1,4 +1,7 @@
-import { NON_INVESTMENT_ACTIVITY_TYPES } from '@ghostfolio/common/config';
+import {
+  NON_INVESTMENT_ACTIVITY_TYPES,
+  TAG_ID_DRAFT
+} from '@ghostfolio/common/config';
 import {
   CreateAccountWithBalancesDto,
   CreateAssetProfileWithMarketDataDto,
@@ -20,6 +23,7 @@ import { isFinite, isNumber, isString } from 'lodash-es';
 import { parse as csvToJson } from 'papaparse';
 import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
+import * as XLSX from 'xlsx';
 
 @Service()
 export class ImportActivitiesService {
@@ -54,12 +58,18 @@ export class ImportActivitiesService {
   }
 
   public async importCsv({
+    activityTagIds,
     fileContent,
     isDryRun = false,
+    selectedAccountId,
+    tags,
     userAccounts
   }: {
+    activityTagIds?: string[];
     fileContent: string;
     isDryRun?: boolean;
+    selectedAccountId?: string;
+    tags?: CreateTagDto[];
     userAccounts: Account[];
   }): Promise<{
     activities: Activity[];
@@ -130,11 +140,13 @@ export class ImportActivitiesService {
         dataSource,
         symbol,
         type,
-        accountId: this.parseAccount({ item, userAccounts }),
+        accountId:
+          selectedAccountId ?? this.parseAccount({ item, userAccounts }),
         comment: this.parseComment({ item }),
         date: this.parseDate({ content, index, item }),
         fee: this.parseFee({ content, index, item }),
         quantity: this.parseQuantity({ content, index, item }),
+        tags: activityTagIds,
         unitPrice: this.parseUnitPrice({ content, index, item }),
         updateAccountBalance: false
       });
@@ -143,9 +155,393 @@ export class ImportActivitiesService {
     const result = await this.importJson({
       activities,
       assetProfiles,
-      isDryRun
+      isDryRun,
+      tags
     });
     return { ...result, assetProfiles };
+  }
+
+  public async importXlsx({
+    currency,
+    file,
+    isDryRun = false,
+    platformName,
+    selectedAccountId,
+    userAccounts
+  }: {
+    currency: string;
+    file: File;
+    isDryRun?: boolean;
+    platformName?: string;
+    selectedAccountId: string;
+    userAccounts: Account[];
+  }) {
+    const workbook = XLSX.read(await file.arrayBuffer(), {
+      cellDates: true,
+      type: 'array'
+    });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    if (!worksheet) {
+      throw new Error('The workbook does not contain a worksheet');
+    }
+
+    const rows = this.getSpreadsheetRows(worksheet);
+    const skippedRowsData: Record<string, unknown>[] = [];
+    const pairedReinvestmentIndexes = new Set<number>();
+    const preparedRows =
+      platformName?.toLowerCase() === 'vanguard'
+        ? rows.flatMap((row, index) => {
+            if (String(row['Transaction type']).toLowerCase() !== 'dividend') {
+              return [row];
+            }
+
+            const dividendAmount = this.parseSpreadsheetNumber(row.Amount);
+            const dividendDate = this.formatSpreadsheetDate({
+              primary: row['Trade date'],
+              fallback: row['Settlement date']
+            });
+            const reinvestmentIndex = rows.findIndex(
+              (candidate, candidateIndex) => {
+                if (
+                  candidateIndex === index ||
+                  pairedReinvestmentIndexes.has(candidateIndex) ||
+                  String(candidate['Transaction type']).toLowerCase() !==
+                    'reinvestment' ||
+                  candidate.Symbol !== row.Symbol
+                ) {
+                  return false;
+                }
+
+                const reinvestmentDate = this.formatSpreadsheetDate({
+                  primary: candidate['Trade date'],
+                  fallback: candidate['Settlement date']
+                });
+                const reinvestmentAmount = this.parseSpreadsheetNumber(
+                  candidate.Amount
+                );
+
+                return (
+                  dividendDate === reinvestmentDate &&
+                  dividendAmount !== undefined &&
+                  reinvestmentAmount === dividendAmount
+                );
+              }
+            );
+
+            if (reinvestmentIndex >= 0) {
+              const reinvestment = rows[reinvestmentIndex];
+              const quantity = this.parseSpreadsheetNumber(
+                reinvestment.Quantity
+              );
+
+              if (quantity && dividendAmount !== undefined) {
+                pairedReinvestmentIndexes.add(reinvestmentIndex);
+
+                return [
+                  {
+                    ...row,
+                    Price: dividendAmount / quantity,
+                    Quantity: quantity
+                  }
+                ];
+              }
+            }
+
+            return [row];
+          })
+        : rows;
+    const supportedRows = preparedRows.flatMap((row) => {
+      if (
+        String(row['Transaction type']).toLowerCase() === 'reinvestment' &&
+        pairedReinvestmentIndexes.has(rows.indexOf(row))
+      ) {
+        return [];
+      }
+
+      const transactionType = String(row['Transaction type']).toLowerCase();
+      const type =
+        transactionType === 'reinvestment' ? 'Buy' : row['Transaction type'];
+
+      if (
+        !['buy', 'sell', 'dividend', 'fee', 'interest', 'liability'].includes(
+          String(type).toLowerCase()
+        )
+      ) {
+        skippedRowsData.push({
+          ...row,
+          'Import issue': 'Unsupported transaction type'
+        });
+        return [];
+      }
+
+      const amount = this.parseSpreadsheetNumber(row.Amount);
+      const price = this.parseSpreadsheetNumber(row.Price);
+      const normalizedType = String(type).toLowerCase();
+      const quantity =
+        this.parseSpreadsheetNumber(row.Quantity) ??
+        (['dividend', 'fee', 'interest', 'liability'].includes(normalizedType)
+          ? 1
+          : undefined);
+
+      if (!quantity || (!price && !amount)) {
+        skippedRowsData.push({
+          ...row,
+          'Import issue': 'Missing quantity, price, or amount'
+        });
+        return [];
+      }
+
+      const date = this.formatSpreadsheetDate({
+        primary: row['Trade date'],
+        fallback: row['Settlement date']
+      });
+
+      if (!date) {
+        skippedRowsData.push({
+          ...row,
+          'Import issue': 'Missing or invalid date'
+        });
+        return [];
+      }
+
+      return [
+        {
+          Currency: currency,
+          Date: date,
+          Fee: this.parseSpreadsheetNumber(row['Commission & fees**']) ?? 0,
+          Quantity: quantity,
+          Symbol: row.Symbol ?? 'CASH',
+          Type: type,
+          UnitPrice: price ?? Math.abs(amount ?? 0)
+        }
+      ];
+    });
+
+    let rowsToImport = supportedRows;
+    const draftRows: typeof supportedRows = [];
+    let result:
+      Awaited<ReturnType<ImportActivitiesService['importCsv']>> | undefined;
+
+    while (rowsToImport.length > 0) {
+      try {
+        result = await this.importCsv({
+          fileContent: XLSX.utils.sheet_to_csv(
+            XLSX.utils.json_to_sheet(rowsToImport),
+            { blankrows: false }
+          ),
+          isDryRun,
+          selectedAccountId,
+          userAccounts
+        });
+
+        break;
+      } catch (error) {
+        const unresolvableSymbol = this.getUnresolvableSymbol(error);
+
+        if (!unresolvableSymbol) {
+          throw error;
+        }
+
+        const filteredRows = rowsToImport.filter(({ Symbol }) => {
+          return String(Symbol) !== unresolvableSymbol;
+        });
+
+        if (filteredRows.length === rowsToImport.length) {
+          throw error;
+        }
+
+        draftRows.push(
+          ...rowsToImport.filter(({ Symbol }) => {
+            return String(Symbol) === unresolvableSymbol;
+          })
+        );
+        rowsToImport = filteredRows;
+      }
+    }
+
+    if (draftRows.length > 0) {
+      const draftResult = await this.importCsv({
+        activityTagIds: [TAG_ID_DRAFT],
+        fileContent: XLSX.utils.sheet_to_csv(
+          XLSX.utils.json_to_sheet(
+            draftRows.map((row) => ({
+              ...row,
+              DataSource: DataSource.MANUAL
+            }))
+          ),
+          { blankrows: false }
+        ),
+        isDryRun,
+        selectedAccountId,
+        tags: [{ id: TAG_ID_DRAFT, name: 'DRAFT' }],
+        userAccounts
+      });
+
+      result = result
+        ? {
+            activities: [...result.activities, ...draftResult.activities],
+            assetProfiles: [
+              ...result.assetProfiles,
+              ...draftResult.assetProfiles
+            ]
+          }
+        : draftResult;
+    }
+
+    if (!result) {
+      throw new Error('The workbook does not contain importable activities');
+    }
+
+    const skippedRows = skippedRowsData.length;
+
+    return {
+      ...result,
+      skippedRows,
+      skippedRowsFileContent: skippedRows
+        ? XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(skippedRowsData), {
+            blankrows: false
+          })
+        : undefined
+    };
+  }
+
+  private formatSpreadsheetDate({
+    fallback,
+    primary
+  }: {
+    fallback: unknown;
+    primary: unknown;
+  }) {
+    const value =
+      typeof primary === 'string' && primary.trim().length > 0
+        ? primary
+        : fallback;
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (typeof value === 'string') {
+      const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value.trim());
+
+      if (match) {
+        const [, month, day, year] = match;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    }
+
+    const parsedDate = parseDateHelper(String(value).trim());
+
+    return parsedDate?.toISOString();
+  }
+
+  private getSpreadsheetRows(worksheet: XLSX.WorkSheet) {
+    const rawRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
+      header: 1,
+      defval: ''
+    });
+    const headerRowIndex = rawRows.findIndex((row) => {
+      const headers = new Set(
+        row.map((value) => this.normalizeSpreadsheetHeader(value))
+      );
+
+      return (
+        headers.has('symbol') &&
+        headers.has('transactiontype') &&
+        (headers.has('tradedate') || headers.has('settlementdate'))
+      );
+    });
+
+    if (headerRowIndex < 0) {
+      throw new Error(
+        'The workbook does not contain a recognizable transaction header row'
+      );
+    }
+
+    const headers = rawRows[headerRowIndex].map((value) => {
+      return this.getSpreadsheetHeaderName(value);
+    });
+
+    return rawRows.slice(headerRowIndex + 1).map((row) => {
+      return Object.fromEntries(
+        headers.map((header, index) => [header, row[index] ?? ''])
+      );
+    });
+  }
+
+  private getSpreadsheetHeaderName(value: unknown) {
+    switch (this.normalizeSpreadsheetHeader(value)) {
+      case 'commissionfees':
+        return 'Commission & fees**';
+      case 'amount':
+        return 'Amount';
+      case 'price':
+        return 'Price';
+      case 'quantity':
+        return 'Quantity';
+      case 'settlementdate':
+        return 'Settlement date';
+      case 'symbol':
+        return 'Symbol';
+      case 'tradedate':
+        return 'Trade date';
+      case 'transactiontype':
+        return 'Transaction type';
+      default:
+        return String(value);
+    }
+  }
+
+  private normalizeSpreadsheetHeader(value: unknown) {
+    return String(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  private getUnresolvableSymbol(error: unknown) {
+    if (!error || typeof error !== 'object' || !('error' in error)) {
+      return undefined;
+    }
+
+    const response = error.error;
+
+    if (!response || typeof response !== 'object' || !('message' in response)) {
+      return undefined;
+    }
+
+    const messages = Array.isArray(response.message)
+      ? response.message
+      : [response.message];
+
+    for (const message of messages) {
+      if (isString(message)) {
+        const match =
+          /activities\.\d+\.symbol \("([^"]+)"\) cannot be resolved/.exec(
+            message
+          );
+
+        if (match) {
+          return match[1];
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private parseSpreadsheetNumber(value: unknown) {
+    if (typeof value === 'number' && isFinite(value)) {
+      return Math.abs(value);
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value.replace(/[$,]/g, ''));
+
+      return isFinite(parsed) ? Math.abs(parsed) : undefined;
+    }
+
+    return undefined;
   }
 
   public importJson({
@@ -154,6 +550,7 @@ export class ImportActivitiesService {
     assetProfiles,
     isDryRun = false,
     platforms,
+    selectedAccountId,
     tags
   }: {
     activities: CreateOrderDto[];
@@ -161,6 +558,7 @@ export class ImportActivitiesService {
     assetProfiles?: CreateAssetProfileWithMarketDataDto[];
     isDryRun?: boolean;
     platforms?: CreatePlatformDto[];
+    selectedAccountId?: string;
     tags?: CreateTagDto[];
   }): Promise<{
     activities: Activity[];
@@ -169,7 +567,12 @@ export class ImportActivitiesService {
       this.postImport(
         {
           accounts,
-          activities,
+          activities: selectedAccountId
+            ? activities.map((activity) => ({
+                ...activity,
+                accountId: selectedAccountId
+              }))
+            : activities,
           assetProfiles,
           platforms,
           tags
@@ -184,12 +587,14 @@ export class ImportActivitiesService {
     activities,
     assetProfiles,
     platforms,
+    selectedAccountId,
     tags
   }: {
     accounts?: CreateAccountWithBalancesDto[];
     activities: Activity[];
     assetProfiles?: CreateAssetProfileWithMarketDataDto[];
     platforms?: CreatePlatformDto[];
+    selectedAccountId?: string;
     tags?: CreateTagDto[];
   }): Promise<{
     activities: Activity[];
@@ -202,6 +607,7 @@ export class ImportActivitiesService {
       accounts,
       assetProfiles,
       platforms,
+      selectedAccountId,
       tags,
       activities: importData
     });

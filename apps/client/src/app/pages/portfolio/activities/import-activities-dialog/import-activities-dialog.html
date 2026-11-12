@@ -73,7 +73,20 @@
             </div>
           </form>
         } @else {
-          <div class="d-flex flex-column justify-content-center">
+          <form
+            class="d-flex flex-column justify-content-center"
+            [formGroup]="accountForm"
+          >
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label i18n>Account</mat-label>
+              <mat-select formControlName="accountId">
+                @for (account of data.user.accounts; track account.id) {
+                  <mat-option [value]="account.id">
+                    {{ account.name }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
             <gf-file-drop-area
               [fileFormats]="fileFormats"
               [isLoading]="isLoading"
@@ -110,7 +123,7 @@
                 }
               </div>
             }
-          </div>
+          </form>
         }
       </div>
     </mat-step>
@@ -126,6 +139,28 @@
       <div>
         @if (errorMessages?.length === 0) {
           @if (importStep === 1) {
+            @if (skippedRows > 0) {
+              <div
+                class="align-items-center d-flex justify-content-between mb-3 ps-1"
+              >
+                <div class="align-items-center d-flex">
+                  <ion-icon class="me-2" name="warning-outline" />
+                  <span i18n
+                    >{{ skippedRows }} unsupported rows were skipped from the
+                    file.</span
+                  >
+                </div>
+                @if (skippedRowsFileContent) {
+                  <button
+                    mat-button
+                    type="button"
+                    (click)="downloadSkippedRows()"
+                  >
+                    <span i18n>Download skipped rows</span>
+                  </button>
+                }
+              </div>
+            }
             @if (rowsWithoutMatch.length > 0) {
               <mat-accordion class="d-block mb-3" displayMode="flat">
                 <mat-expansion-panel>

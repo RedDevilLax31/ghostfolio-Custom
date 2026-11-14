@@ -16,6 +16,7 @@ import { GfAccountSelectorComponent } from './account-selector.component';
 
 const ACCOUNTS: AccountWithPlatform[] = [
   {
+    accountType: null,
     comment: null,
     createdAt: new Date('2024-01-01'),
     currency: 'USD',
@@ -31,6 +32,7 @@ const ACCOUNTS: AccountWithPlatform[] = [
     userId: '081aa387-487d-4438-83a4-3060eb2a016e'
   },
   {
+    accountType: null,
     comment: null,
     createdAt: new Date('2024-01-01'),
     currency: 'USD',
@@ -46,6 +48,7 @@ const ACCOUNTS: AccountWithPlatform[] = [
     userId: '081aa387-487d-4438-83a4-3060eb2a016e'
   },
   {
+    accountType: null,
     comment: null,
     createdAt: new Date('2024-01-01'),
     currency: 'USD',
@@ -61,6 +64,7 @@ const ACCOUNTS: AccountWithPlatform[] = [
     userId: '081aa387-487d-4438-83a4-3060eb2a016e'
   },
   {
+    accountType: null,
     comment: null,
     createdAt: new Date('2024-01-01'),
     currency: 'EUR',

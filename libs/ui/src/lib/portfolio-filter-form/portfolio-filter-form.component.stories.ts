@@ -7,6 +7,7 @@ import { GfPortfolioFilterFormComponent } from './portfolio-filter-form.componen
 
 const accounts: AccountWithPlatform[] = [
   {
+    accountType: null,
     comment: null,
     createdAt: new Date('2025-06-01T06:53:10.569Z'),
     currency: 'USD',
@@ -22,6 +23,7 @@ const accounts: AccountWithPlatform[] = [
     userId: '081aa387-487d-4438-83a4-3060eb2a016e'
   },
   {
+    accountType: null,
     comment: null,
     createdAt: new Date('2025-06-01T06:48:53.055Z'),
     currency: 'USD',

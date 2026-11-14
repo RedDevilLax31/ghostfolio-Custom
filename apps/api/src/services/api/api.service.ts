@@ -32,26 +32,26 @@ export class ApiService {
     const symbol = filterBySymbol;
     const tagIds = filterByTags ?? [];
 
-    const filters = [
-      ...accountIds.map((accountId) => {
+    const filters: Filter[] = [
+      ...accountIds.map((accountId): Filter => {
         return {
           id: accountId,
           type: 'ACCOUNT'
         };
       }),
-      ...assetClasses.map((assetClass) => {
+      ...assetClasses.map((assetClass): Filter => {
         return {
           id: assetClass,
           type: 'ASSET_CLASS'
         };
       }),
-      ...assetSubClasses.map((assetClass) => {
+      ...assetSubClasses.map((assetClass): Filter => {
         return {
           id: assetClass,
           type: 'ASSET_SUB_CLASS'
         };
       }),
-      ...tagIds.map((tagId) => {
+      ...tagIds.map((tagId): Filter => {
         return {
           id: tagId,
           type: 'TAG'

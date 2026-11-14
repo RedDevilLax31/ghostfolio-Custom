@@ -101,7 +101,7 @@ export class GfAdminMarketDataComponent implements AfterViewInit, OnInit {
       .filter((assetSubClass) => {
         return assetSubClass !== 'CASH';
       })
-      .map((assetSubClass) => {
+      .map((assetSubClass): Filter => {
         return {
           id: assetSubClass.toString(),
           label: translate(assetSubClass),
@@ -394,7 +394,7 @@ export class GfAdminMarketDataComponent implements AfterViewInit, OnInit {
             return type !== 'DATA_SOURCE';
           }),
           ...dataProviders.flatMap(
-            ({ assetProfileCount, dataSource, name }) => {
+            ({ assetProfileCount, dataSource, name }): Filter[] => {
               if (assetProfileCount === 0 || !dataSource) {
                 return [];
               }

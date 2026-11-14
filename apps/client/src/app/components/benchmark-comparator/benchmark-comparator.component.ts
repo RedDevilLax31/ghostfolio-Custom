@@ -21,6 +21,7 @@ import {
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
 
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
@@ -66,7 +67,9 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
   styleUrls: ['./benchmark-comparator.component.scss'],
   templateUrl: './benchmark-comparator.component.html'
 })
-export class GfBenchmarkComparatorComponent implements OnChanges, OnDestroy {
+export class GfBenchmarkComparatorComponent
+  implements AfterViewInit, OnChanges, OnDestroy
+{
   public readonly benchmark = input<Partial<SymbolProfile>>();
   public readonly benchmarkDataItems = input<LineChartItem[]>([]);
   public readonly benchmarks = input<Partial<SymbolProfile>[]>();
@@ -88,6 +91,7 @@ export class GfBenchmarkComparatorComponent implements OnChanges, OnDestroy {
   protected hasPermissionToAccessAdminControl: boolean;
   protected readonly routerLinkAdminControlMarketData =
     internalRoutes.adminControl.subRoutes.marketData.routerLink;
+  private hasViewInitialized = false;
 
   private readonly chartCanvas =
     viewChild.required<ElementRef<HTMLCanvasElement>>('chartCanvas');
@@ -127,9 +131,14 @@ export class GfBenchmarkComparatorComponent implements OnChanges, OnDestroy {
       permissions.accessAdminControl
     );
 
-    if (this.performanceDataItems()) {
+    if (this.hasViewInitialized && this.performanceDataItems()) {
       this.initialize();
     }
+  }
+
+  public ngAfterViewInit() {
+    this.hasViewInitialized = true;
+    this.initialize();
   }
 
   public ngOnDestroy() {

@@ -506,15 +506,15 @@ export class AssetProfilesService {
     > = {};
 
     if (countries !== undefined) {
-      data.countries = countries as Prisma.JsonArray;
+      data.countries = countries;
     }
 
     if (holdings !== undefined) {
-      data.holdings = holdings as Prisma.JsonArray;
+      data.holdings = holdings;
     }
 
     if (sectors !== undefined) {
-      data.sectors = sectors as Prisma.JsonArray;
+      data.sectors = sectors;
     }
 
     return data;

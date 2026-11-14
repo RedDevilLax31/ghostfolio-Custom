@@ -67,6 +67,8 @@ services:
       - /bin/sh
       - -c
       - redis-server --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
+    volumes:
+      - redis:/data
     healthcheck:
       test:
         ['CMD-SHELL', 'redis-cli --pass "$${REDIS_PASSWORD}" ping | grep PONG']
@@ -76,3 +78,4 @@ services:
 
 volumes:
   postgres:
+  redis:

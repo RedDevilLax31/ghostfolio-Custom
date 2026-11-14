@@ -697,7 +697,7 @@ export class ImportService {
               ...marketData,
               symbol,
               dataSource: assetProfileWithMarketData.dataSource
-            } as Prisma.MarketDataUpdateInput;
+            };
           });
 
           if (assetProfileToCreate) {

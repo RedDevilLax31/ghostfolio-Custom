@@ -1314,8 +1314,8 @@ export class PortfolioService {
     // impersonated) user, while the translations follow the language of the
     // authenticated user
     const userSettings = resolveUserSettings({
-      impersonationUserSettings: user?.settings?.settings as UserSettings,
-      userSettings: this.request.user.settings.settings as UserSettings
+      impersonationUserSettings: user?.settings?.settings,
+      userSettings: this.request.user.settings.settings
     });
 
     const languageCode = userSettings.language ?? DEFAULT_LANGUAGE_CODE;
@@ -2209,7 +2209,7 @@ export class PortfolioService {
 
     const totalEmergencyFund = this.getTotalEmergencyFund({
       emergencyFundHoldingsValueInBaseCurrency,
-      userSettings: user.settings?.settings as UserSettings
+      userSettings: user.settings?.settings
     });
 
     const dateOfFirstActivity = portfolioCalculator.getStartDate();

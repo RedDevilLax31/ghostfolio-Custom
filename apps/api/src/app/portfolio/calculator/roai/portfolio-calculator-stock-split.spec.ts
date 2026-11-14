@@ -265,7 +265,7 @@ function createActivity({
     unitPriceInAssetProfileCurrency: unitPrice,
     value: quantity * unitPrice,
     valueInBaseCurrency: quantity * unitPrice
-  } as Activity;
+  };
 }
 
 function createSplit({

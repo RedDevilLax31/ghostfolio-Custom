@@ -103,7 +103,7 @@ export function applyAssetProfileOverrides<T extends Partial<SymbolProfile>>(
     return assetProfile;
   }
 
-  const assetProfileWithOverrides = { ...assetProfile } as T;
+  const assetProfileWithOverrides = { ...assetProfile };
 
   assetProfileWithOverrides.assetClass =
     assetProfileOverrides.assetClass ?? assetProfile.assetClass;

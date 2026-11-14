@@ -205,7 +205,7 @@ export class GfActivityDialogHostComponent implements OnDestroy, OnInit {
 
         const request$: Observable<unknown> = isUpdate
           ? this.dataService.putActivity(result as UpdateOrderDto)
-          : this.dataService.postActivity(result as CreateOrderDto);
+          : this.dataService.postActivity(result);
 
         request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           error: () => {

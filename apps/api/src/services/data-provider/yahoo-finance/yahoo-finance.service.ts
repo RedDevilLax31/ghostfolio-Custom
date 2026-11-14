@@ -25,6 +25,7 @@ import { DataSource, SymbolProfile } from '@prisma/client';
 import { addDays, format, isSameDay } from 'date-fns';
 import { ReasonPhrases, StatusCodes } from 'http-status-codes';
 import { uniqBy } from 'lodash-es';
+import ms from 'ms';
 import YahooFinance from 'yahoo-finance2';
 import type { ChartResultArray } from 'yahoo-finance2/modules/chart';
 import type {
@@ -45,8 +46,13 @@ export class YahooFinanceService implements DataProviderInterface {
 
   private static readonly RATE_LIMIT_ERROR_MESSAGE =
     ReasonPhrases.TOO_MANY_REQUESTS;
+  private static readonly RATE_LIMIT_COOLDOWN_IN_MS = ms('1 minute');
+  private static readonly REQUEST_INTERVAL_IN_MS = ms('1 second');
 
   private readonly logger = new Logger(YahooFinanceService.name);
+  private nextRequestAt = 0;
+  private rateLimitCooldownUntil = 0;
+  private requestQueue: Promise<void> = Promise.resolve();
 
   private readonly yahooFinance = new YahooFinance({
     suppressNotices: ['yahooSurvey']
@@ -86,19 +92,21 @@ export class YahooFinanceService implements DataProviderInterface {
   }: GetDividendsParams) {
     try {
       const historicalResult = this.convertToDividendResult(
-        await this.yahooFinance.chart(
-          this.yahooFinanceDataEnhancerService.convertToYahooFinanceSymbol(
-            symbol
-          ),
-          {
-            events: 'dividends',
-            interval: granularity === 'month' ? '1mo' : '1d',
-            period1: format(from, DATE_FORMAT),
-            period2: format(
-              isSameDay(from, to) ? addDays(to, 1) : to,
-              DATE_FORMAT
-            )
-          }
+        await this.scheduleRequest(() =>
+          this.yahooFinance.chart(
+            this.yahooFinanceDataEnhancerService.convertToYahooFinanceSymbol(
+              symbol
+            ),
+            {
+              events: 'dividends',
+              interval: granularity === 'month' ? '1mo' : '1d',
+              period1: format(from, DATE_FORMAT),
+              period2: format(
+                isSameDay(from, to) ? addDays(to, 1) : to,
+                DATE_FORMAT
+              )
+            }
+          )
         )
       );
       const response: {
@@ -125,7 +133,7 @@ export class YahooFinanceService implements DataProviderInterface {
       } else if (
         (error?.name === 'HTTPError' &&
           error?.code === StatusCodes.TOO_MANY_REQUESTS) ||
-        error?.message?.startsWith(YahooFinanceService.RATE_LIMIT_ERROR_MESSAGE)
+        this.isRateLimitError(error)
       ) {
         this.logger.warn(
           `${message}: ${YahooFinanceService.RATE_LIMIT_ERROR_MESSAGE}`
@@ -146,18 +154,20 @@ export class YahooFinanceService implements DataProviderInterface {
     [date: string]: DataProviderHistoricalResponse;
   }> {
     try {
-      const chartResult = await this.yahooFinance.chart(
-        this.yahooFinanceDataEnhancerService.convertToYahooFinanceSymbol(
-          symbol
-        ),
-        {
-          interval: '1d',
-          period1: format(from, DATE_FORMAT),
-          period2: format(
-            isSameDay(from, to) ? addDays(to, 1) : to,
-            DATE_FORMAT
-          )
-        }
+      const chartResult = await this.scheduleRequest(() =>
+        this.yahooFinance.chart(
+          this.yahooFinanceDataEnhancerService.convertToYahooFinanceSymbol(
+            symbol
+          ),
+          {
+            interval: '1d',
+            period1: format(from, DATE_FORMAT),
+            period2: format(
+              isSameDay(from, to) ? addDays(to, 1) : to,
+              DATE_FORMAT
+            )
+          }
+        )
       );
 
       const historicalResult = this.convertToHistoricalResult(chartResult);
@@ -223,8 +233,14 @@ export class YahooFinanceService implements DataProviderInterface {
       let quotes: Price[] | Quote[] = [];
 
       try {
-        quotes = await this.yahooFinance.quote(yahooFinanceSymbols);
+        quotes = await this.scheduleRequest(() =>
+          this.yahooFinance.quote(yahooFinanceSymbols)
+        );
       } catch (error) {
+        if (this.isRateLimitError(error)) {
+          throw error;
+        }
+
         this.logger.error(error.message);
 
         this.logger.warn('Fallback to yahooFinance.quoteSummary()');
@@ -276,7 +292,9 @@ export class YahooFinanceService implements DataProviderInterface {
         quoteTypes.push('INDEX');
       }
 
-      const searchResult = await this.yahooFinance.search(query);
+      const searchResult = await this.scheduleRequest(() =>
+        this.yahooFinance.search(query)
+      );
 
       const quotes = searchResult.quotes
         .filter(
@@ -313,12 +331,14 @@ export class YahooFinanceService implements DataProviderInterface {
       let marketData: QuoteResponseArray = [];
 
       try {
-        marketData = await this.yahooFinance.quote(
-          uniqBy(quotes, ({ symbol }) => {
-            return symbol;
-          }).map(({ symbol }) => {
-            return symbol;
-          })
+        marketData = await this.scheduleRequest(() =>
+          this.yahooFinance.quote(
+            uniqBy(quotes, ({ symbol }) => {
+              return symbol;
+            }).map(({ symbol }) => {
+              return symbol;
+            })
+          )
         );
       } catch (error) {
         if (error?.result?.length > 0) {
@@ -386,7 +406,7 @@ export class YahooFinanceService implements DataProviderInterface {
 
   private async getQuotesWithQuoteSummary(aYahooFinanceSymbols: string[]) {
     const quoteSummaryPromises = aYahooFinanceSymbols.map((symbol) => {
-      return this.yahooFinance.quoteSummary(symbol);
+      return this.scheduleRequest(() => this.yahooFinance.quoteSummary(symbol));
     });
 
     const settledResults = await Promise.allSettled(quoteSummaryPromises);
@@ -406,5 +426,62 @@ export class YahooFinanceService implements DataProviderInterface {
       .map(({ value }) => {
         return value.price;
       });
+  }
+
+  private isRateLimitError(error: unknown) {
+    const errorRecord =
+      typeof error === 'object' && error !== null
+        ? (error as {
+            code?: number;
+            message?: string;
+            statusCode?: number;
+          })
+        : undefined;
+
+    return (
+      errorRecord?.code === StatusCodes.TOO_MANY_REQUESTS ||
+      errorRecord?.statusCode === StatusCodes.TOO_MANY_REQUESTS ||
+      errorRecord?.message
+        ?.toLowerCase()
+        .includes(YahooFinanceService.RATE_LIMIT_ERROR_MESSAGE.toLowerCase())
+    );
+  }
+
+  private scheduleRequest<T>(request: () => Promise<T>): Promise<T> {
+    const scheduledRequest = this.requestQueue.then(async () => {
+      const waitUntil = Math.max(
+        this.nextRequestAt,
+        this.rateLimitCooldownUntil
+      );
+      const delay = waitUntil - Date.now();
+
+      if (delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      try {
+        return await request();
+      } catch (error) {
+        if (this.isRateLimitError(error)) {
+          this.rateLimitCooldownUntil =
+            Date.now() + YahooFinanceService.RATE_LIMIT_COOLDOWN_IN_MS;
+          this.logger.warn(
+            `Yahoo Finance rate limit reached; pausing requests for ${YahooFinanceService.RATE_LIMIT_COOLDOWN_IN_MS / 1000} seconds`
+          );
+        }
+
+        throw error;
+      } finally {
+        this.nextRequestAt =
+          Date.now() + YahooFinanceService.REQUEST_INTERVAL_IN_MS;
+      }
+    });
+
+    this.requestQueue = scheduledRequest.then(
+      () => undefined,
+      () => undefined
+    );
+
+    return scheduledRequest;
   }
 }

@@ -94,5 +94,5 @@ export function getXRayRulesSettings(
       key,
       getRuleSettings({ key, userSettings })
     ])
-  ) as XRayRulesSettings;
+  );
 }

@@ -161,9 +161,8 @@ export class UserService {
       activitiesGroupedByType[0]?._min.date ?? new Date();
 
     const resolvedUserSettings = resolveUserSettings({
-      impersonationUserSettings: impersonationUser?.settings
-        ?.settings as UserSettings,
-      userSettings: settings.settings as UserSettings
+      impersonationUserSettings: impersonationUser?.settings?.settings,
+      userSettings: settings.settings
     });
 
     let referralPartners: ReferralPartner[] = [];
@@ -231,7 +230,7 @@ export class UserService {
         baseCurrency: resolvedUserSettings.baseCurrency ?? DEFAULT_CURRENCY,
         locale: resolvedUserSettings.locale ?? locale
       },
-      subscription: subscription as IUser['subscription']
+      subscription: subscription
     };
   }
 
@@ -330,7 +329,7 @@ export class UserService {
       id,
       provider,
       role,
-      settings: settings as UserWithSettings['settings'],
+      settings: settings,
       thirdPartyId,
       updatedAt,
       dataProviderGhostfolioDailyRequests:

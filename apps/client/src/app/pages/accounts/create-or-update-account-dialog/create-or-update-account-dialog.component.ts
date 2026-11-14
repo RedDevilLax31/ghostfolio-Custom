@@ -210,9 +210,9 @@ export class GfCreateOrUpdateAccountDialogComponent {
           object: account
         });
 
-        this.dialogRef.close(account as UpdateAccountDto);
+        this.dialogRef.close(account);
       } else {
-        delete (account as CreateAccountDto).id;
+        delete account.id;
 
         await validateObjectForForm({
           classDto: CreateAccountDto,
@@ -220,7 +220,7 @@ export class GfCreateOrUpdateAccountDialogComponent {
           object: account
         });
 
-        this.dialogRef.close(account as CreateAccountDto);
+        this.dialogRef.close(account);
       }
     } catch (error) {
       console.error(error);

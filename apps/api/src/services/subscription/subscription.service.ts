@@ -224,11 +224,11 @@ export class SubscriptionService {
 
       let offerKey: SubscriptionOfferKey = price ? 'renewal' : 'default';
 
-      if (createdAt && isBefore(createdAt, parseDate('2023-01-01')!)) {
+      if (createdAt && isBefore(createdAt, parseDate('2023-01-01'))) {
         offerKey = 'renewal-early-bird-2023';
-      } else if (createdAt && isBefore(createdAt, parseDate('2024-01-01')!)) {
+      } else if (createdAt && isBefore(createdAt, parseDate('2024-01-01'))) {
         offerKey = 'renewal-early-bird-2024';
-      } else if (createdAt && isBefore(createdAt, parseDate('2025-12-01')!)) {
+      } else if (createdAt && isBefore(createdAt, parseDate('2025-12-01'))) {
         offerKey = 'renewal-early-bird-2025';
       }
 
@@ -239,7 +239,7 @@ export class SubscriptionService {
       return {
         subscribedAt,
         expiresAt: isBefore(new Date(), expiresAt) ? expiresAt : undefined,
-        offer: offer as SubscriptionOffer,
+        offer: offer,
         type: isBefore(new Date(), expiresAt)
           ? SubscriptionType.Premium
           : SubscriptionType.Basic
@@ -250,7 +250,7 @@ export class SubscriptionService {
       });
 
       return {
-        offer: offer as SubscriptionOffer,
+        offer: offer,
         type: SubscriptionType.Basic
       };
     }
@@ -300,7 +300,7 @@ export class SubscriptionService {
       (SUPPORTED_LANGUAGE_CODES as readonly string[]).includes(languageCode) &&
       !(languageCode in unsupportedLanguageCodes)
     ) {
-      return languageCode as Stripe.Checkout.SessionCreateParams.Locale;
+      return languageCode;
     }
 
     return DEFAULT_LANGUAGE_CODE;

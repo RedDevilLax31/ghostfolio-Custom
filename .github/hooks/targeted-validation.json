@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "./.github/hooks/run-targeted-validation.sh",
+        "cwd": "${workspaceFolder}",
+        "timeout": 180
+      }
+    ]
+  }
+}

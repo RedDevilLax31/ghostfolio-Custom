@@ -102,8 +102,7 @@ export class SymbolProfileService {
         upsert: {
           create:
             data as Prisma.AssetProfileOverridesCreateWithoutSymbolProfileInput,
-          update:
-            data as Prisma.AssetProfileOverridesUpdateWithoutSymbolProfileInput
+          update: data
         }
       }
     };
@@ -318,7 +317,7 @@ export class SymbolProfileService {
         ),
         symbolMapping: this.getSymbolMapping(symbolProfileWithOverrides),
         watchedByCount: symbolProfile._count.watchedBy ?? 0
-      } as EnhancedAssetProfile;
+      };
     });
   }
 

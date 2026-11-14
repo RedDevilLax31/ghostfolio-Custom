@@ -105,33 +105,33 @@ export class GfAdminMarketDataComponent implements AfterViewInit, OnInit {
         return {
           id: assetSubClass.toString(),
           label: translate(assetSubClass),
-          type: 'ASSET_SUB_CLASS' as Filter['type']
+          type: 'ASSET_SUB_CLASS'
         };
       }),
     {
       id: 'BENCHMARKS',
       label: $localize`Benchmarks`,
-      type: 'PRESET_ID' as Filter['type']
+      type: 'PRESET_ID'
     },
     {
       id: 'CURRENCIES',
       label: $localize`Currencies`,
-      type: 'PRESET_ID' as Filter['type']
+      type: 'PRESET_ID'
     },
     {
       id: 'ETF_WITHOUT_COUNTRIES',
       label: $localize`ETFs without Countries`,
-      type: 'PRESET_ID' as Filter['type']
+      type: 'PRESET_ID'
     },
     {
       id: 'ETF_WITHOUT_SECTORS',
       label: $localize`ETFs without Sectors`,
-      type: 'PRESET_ID' as Filter['type']
+      type: 'PRESET_ID'
     },
     {
       id: 'NO_ACTIVITIES',
       label: $localize`No Activities`,
-      type: 'PRESET_ID' as Filter['type']
+      type: 'PRESET_ID'
     }
   ];
   protected readonly canDeleteAssetProfile = canDeleteAssetProfile;
@@ -403,7 +403,7 @@ export class GfAdminMarketDataComponent implements AfterViewInit, OnInit {
                 {
                   id: dataSource,
                   label: name ?? translate(dataSource),
-                  type: 'DATA_SOURCE' as Filter['type']
+                  type: 'DATA_SOURCE'
                 }
               ];
             }

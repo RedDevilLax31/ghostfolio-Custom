@@ -213,7 +213,7 @@ export const E_MAIL_LINE_BREAK = '%0D%0A';
  * Keep equal to GATHER_HISTORICAL_MARKET_DATA_COOLDOWN_IN_MS: Bull removes the
  * completed jobs of all job names by age, so the lower value applies to both.
  */
-export const GATHER_ASSET_PROFILE_COOLDOWN_IN_MS = ms('12 hours');
+export const GATHER_ASSET_PROFILE_COOLDOWN_IN_MS = ms('24 hours');
 
 export const GATHER_ASSET_PROFILE_PROCESS_JOB_NAME = 'GATHER_ASSET_PROFILE';
 export const GATHER_ASSET_PROFILE_PROCESS_JOB_OPTIONS: JobOptions = {
@@ -231,7 +231,7 @@ export const GATHER_ASSET_PROFILE_PROCESS_JOB_OPTIONS: JobOptions = {
  * Keep equal to GATHER_ASSET_PROFILE_COOLDOWN_IN_MS: Bull removes the
  * completed jobs of all job names by age, so the lower value applies to both.
  */
-export const GATHER_HISTORICAL_MARKET_DATA_COOLDOWN_IN_MS = ms('12 hours');
+export const GATHER_HISTORICAL_MARKET_DATA_COOLDOWN_IN_MS = ms('24 hours');
 
 export const GATHER_HISTORICAL_MARKET_DATA_PROCESS_JOB_NAME =
   'GATHER_HISTORICAL_MARKET_DATA';

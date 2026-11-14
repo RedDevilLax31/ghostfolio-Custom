@@ -69,6 +69,7 @@ export class GfTreemapChartComponent
   public readonly treemapChartClicked = output<AssetProfileIdentifier>();
 
   protected isLoading = true;
+  private hasViewInitialized = false;
 
   private chart: Chart<'treemap'>;
   private readonly chartCanvas =
@@ -85,11 +86,14 @@ export class GfTreemapChartComponent
   }
 
   public ngAfterViewInit() {
+    this.hasViewInitialized = true;
     this.initialize();
   }
 
   public ngOnChanges() {
-    this.initialize();
+    if (this.hasViewInitialized) {
+      this.initialize();
+    }
   }
 
   public ngOnDestroy() {

@@ -56,7 +56,7 @@ export class CurrencyClusterRiskCurrentInvestment extends Rule<Settings> {
           id: 'rule.currencyClusterRiskCurrentInvestment.false',
           languageCode: this.getLanguageCode(),
           placeholders: {
-            currency: maxItem.groupKey as string,
+            currency: maxItem.groupKey,
             maxValueRatio: (maxValueRatio * 100).toPrecision(3),
             thresholdMax: ruleSettings.thresholdMax * 100
           }
@@ -70,7 +70,7 @@ export class CurrencyClusterRiskCurrentInvestment extends Rule<Settings> {
         id: 'rule.currencyClusterRiskCurrentInvestment.true',
         languageCode: this.getLanguageCode(),
         placeholders: {
-          currency: maxItem.groupKey as string,
+          currency: maxItem.groupKey,
           maxValueRatio: (maxValueRatio * 100).toPrecision(3),
           thresholdMax: ruleSettings.thresholdMax * 100
         }

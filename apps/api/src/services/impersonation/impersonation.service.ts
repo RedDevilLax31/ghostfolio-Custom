@@ -50,7 +50,7 @@ export class ImpersonationService {
         authenticatedUserSubscription: user?.subscription,
         isActive: false,
         scopes: getScopesOfOwnAccess(),
-        userId: user?.id as string,
+        userId: user?.id,
         userSettings: user?.settings?.settings ?? {},
         userSubscription: user?.subscription
       };

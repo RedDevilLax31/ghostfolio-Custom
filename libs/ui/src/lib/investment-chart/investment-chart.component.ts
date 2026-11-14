@@ -14,6 +14,7 @@ import { InvestmentItem } from '@ghostfolio/common/interfaces/investment-item.in
 import { ColorScheme, GroupBy } from '@ghostfolio/common/types';
 
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
@@ -59,7 +60,9 @@ const { orange } = OpenColor;
   styleUrls: ['./investment-chart.component.scss'],
   templateUrl: './investment-chart.component.html'
 })
-export class GfInvestmentChartComponent implements OnChanges, OnDestroy {
+export class GfInvestmentChartComponent
+  implements AfterViewInit, OnChanges, OnDestroy
+{
   @Input() public benchmarkDataItems: InvestmentItem[] = [];
   @Input() public benchmarkDataLabel = '';
   @Input() public colorScheme?: ColorScheme;
@@ -78,6 +81,7 @@ export class GfInvestmentChartComponent implements OnChanges, OnDestroy {
   private chart?: Chart<'bar' | 'line'>;
   private investments: InvestmentItem[];
   private values: LineChartItem[];
+  private hasViewInitialized = false;
 
   public constructor() {
     Chart.register(
@@ -109,9 +113,18 @@ export class GfInvestmentChartComponent implements OnChanges, OnDestroy {
       this.chart = undefined;
     }
 
-    if (this.benchmarkDataItems && this.historicalDataItems) {
+    if (
+      this.hasViewInitialized &&
+      this.benchmarkDataItems &&
+      this.historicalDataItems
+    ) {
       this.initialize();
     }
+  }
+
+  public ngAfterViewInit() {
+    this.hasViewInitialized = true;
+    this.initialize();
   }
 
   public ngOnDestroy() {
@@ -125,11 +138,11 @@ export class GfInvestmentChartComponent implements OnChanges, OnDestroy {
     const benchmarkColor = `rgb(${benchmarkColorRgb.r}, ${benchmarkColorRgb.g}, ${benchmarkColorRgb.b})`;
 
     // Create clones of the input data
-    this.investments = this.benchmarkDataItems.map((item) =>
+    this.investments = (this.benchmarkDataItems ?? []).map((item) =>
       Object.assign({}, item)
     );
 
-    this.values = this.historicalDataItems.map((item) =>
+    this.values = (this.historicalDataItems ?? []).map((item) =>
       Object.assign({}, item)
     );
 

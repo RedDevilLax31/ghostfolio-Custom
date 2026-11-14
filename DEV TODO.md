@@ -3,10 +3,17 @@
 ## UI
 
 - [x] Differentiate development and production instances
+- [ ] fix side to side scrolling because of long names in tables
 
 ## Bugfixes
 
-- [ ] Overview not showing any value after vanguard import process 55% to x% = y%
+- [ ] Overview not showing any value after vanguard import process 55% to 66% = 11%
+      -[x] Yahoo API retrieve limit?
+      -[x] Longer Development code cache
+      -[x] Yahoo Request Throttling
+      -[x] Rate limit backoff
+      -[x] persistent redis cache
+      -[x] reduced historical refresh frequency
 
 ## Importing
 
@@ -22,6 +29,7 @@
 - [ ] Prevent duplicate records from loading
 - [ ] Does this handle stock splits? - vanguard - should this be manual as its really an exception process?
 - [ ] Does this handle company merges? - vanguard - should this be manual as its really an exception process?
+- [ ] Run automatic data gathering for any new holdings imported
 
 ## Account Types
 
@@ -45,3 +53,7 @@
 ## Backend Work
 
 - [ ] Backend Database querying and structure analysis
+- [x] added skill for fast and easy development enviroment start up process
+- [x] suggested copilot skills, instructions, and hooks to improve processes
+- [x] SSH coding set up with laptop
+- [ ] Is automatic data gathering needed after a certain amount of time?

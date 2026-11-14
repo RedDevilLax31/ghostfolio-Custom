@@ -251,7 +251,7 @@ describe('Impersonation service', () => {
           user: {
             ...authenticatedUser,
             permissions: [permissions.impersonateAllUsers]
-          } as UserWithSettings
+          }
         }
       );
 
@@ -321,7 +321,7 @@ describe('Impersonation service', () => {
 
     it('Refuses an access of the type PRIVATE', async () => {
       const { isActive, userId } = await createService({
-        access: { ...accessOfMcp, type: 'PRIVATE' } as unknown as Access,
+        access: { ...accessOfMcp, type: 'PRIVATE' } as unknown,
         impersonatedUser
       }).service.resolve({ impersonationId: accessId, types: ['MCP'] });
 
@@ -331,7 +331,7 @@ describe('Impersonation service', () => {
 
     it('Refuses an access of the type PUBLIC', async () => {
       const { isActive, userId } = await createService({
-        access: { ...accessOfMcp, type: 'PUBLIC' } as unknown as Access,
+        access: { ...accessOfMcp, type: 'PUBLIC' } as unknown,
         impersonatedUser
       }).service.resolve({ impersonationId: accessId, types: ['MCP'] });
 
@@ -344,7 +344,7 @@ describe('Impersonation service', () => {
         access: {
           ...accessOfMcp,
           expiresAt: subDays(new Date(), 1)
-        } as unknown as Access,
+        },
         impersonatedUser
       }).service.resolve({ impersonationId: accessId, types: ['MCP'] });
 
@@ -357,7 +357,7 @@ describe('Impersonation service', () => {
         access: {
           ...accessOfMcp,
           expiresAt: subDays(new Date(), 1)
-        } as unknown as Access,
+        },
         impersonatedUser
       });
 
@@ -417,7 +417,7 @@ describe('Impersonation service', () => {
         access: {
           ...expiringAccess,
           expiresAt: addDays(new Date(), 1)
-        } as unknown as Access
+        }
       });
 
       const { isActive } = await service.resolve({
@@ -434,7 +434,7 @@ describe('Impersonation service', () => {
         access: {
           ...expiringAccess,
           expiresAt: subDays(new Date(), 1)
-        } as unknown as Access
+        }
       });
 
       const { isActive, scopes: scopesOfContext } = await service.resolve({
@@ -454,7 +454,7 @@ describe('Impersonation service', () => {
         access: {
           ...expiringAccess,
           expiresAt: subDays(new Date(), 1)
-        } as unknown as Access
+        }
       });
 
       const { isActive } = await service.resolve({
@@ -462,7 +462,7 @@ describe('Impersonation service', () => {
         user: {
           ...authenticatedUser,
           permissions: [permissions.impersonateAllUsers]
-        } as unknown as typeof authenticatedUser
+        }
       });
 
       expect(isActive).toEqual(false);
@@ -506,7 +506,7 @@ describe('Impersonation service', () => {
         access: {
           ...usedAccess,
           lastUsedAt: subDays(new Date(), 1)
-        } as unknown as Access
+        }
       });
 
       await service.resolve({
@@ -521,7 +521,7 @@ describe('Impersonation service', () => {
     it('Does not record a usage of the same day again', async () => {
       const { service, updateAccess } = createService({
         impersonatedUser,
-        access: { ...usedAccess, lastUsedAt: new Date() } as unknown as Access
+        access: { ...usedAccess, lastUsedAt: new Date() }
       });
 
       await service.resolve({

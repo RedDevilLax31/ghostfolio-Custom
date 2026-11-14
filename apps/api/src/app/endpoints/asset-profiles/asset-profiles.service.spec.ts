@@ -92,7 +92,7 @@ describe('AssetProfilesService', () => {
     });
 
     it('invalidates portfolio snapshots for users holding the asset', async () => {
-      upsert.mockResolvedValue({} as AssetProfileSplit);
+      upsert.mockResolvedValue({});
       getUserIdsBySymbolProfileId.mockResolvedValue(['user-1', 'user-2']);
 
       await assetProfilesService.createSplit({
@@ -121,7 +121,7 @@ describe('AssetProfilesService', () => {
           completeJob = resolve;
         })
       );
-      upsert.mockResolvedValue({} as AssetProfileSplit);
+      upsert.mockResolvedValue({});
       getUserIdsBySymbolProfileId.mockResolvedValue(['user-1']);
 
       await assetProfilesService.createSplit({

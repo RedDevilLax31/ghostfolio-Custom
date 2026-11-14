@@ -298,7 +298,7 @@ export class BenchmarkService {
         name: benchmarkAssetProfiles[index].name,
         performances: {
           allTimeHigh: {
-            date: allTimeHigh?.date as Date,
+            date: allTimeHigh?.date,
             performancePercent: this.getPerformancePercentFromAllTimeHigh(
               performancePercentFromAllTimeHigh
             )
@@ -318,7 +318,7 @@ export class BenchmarkService {
         JSON.stringify({
           benchmarks,
           expiration: expiration.getTime()
-        } as BenchmarkValue),
+        }),
         CACHE_TTL_INFINITE
       );
     }

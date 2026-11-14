@@ -37,25 +37,25 @@ export class ApiService {
         return {
           id: accountId,
           type: 'ACCOUNT'
-        } as Filter;
+        };
       }),
       ...assetClasses.map((assetClass) => {
         return {
           id: assetClass,
           type: 'ASSET_CLASS'
-        } as Filter;
+        };
       }),
       ...assetSubClasses.map((assetClass) => {
         return {
           id: assetClass,
           type: 'ASSET_SUB_CLASS'
-        } as Filter;
+        };
       }),
       ...tagIds.map((tagId) => {
         return {
           id: tagId,
           type: 'TAG'
-        } as Filter;
+        };
       })
     ];
 

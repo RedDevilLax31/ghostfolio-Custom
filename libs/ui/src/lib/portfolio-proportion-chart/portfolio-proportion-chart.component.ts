@@ -80,6 +80,7 @@ export class GfPortfolioProportionChartComponent
 
   public chart: Chart<'doughnut'>;
   public isLoading = true;
+  private hasViewInitialized = false;
 
   protected readonly proportionChartClicked =
     output<PortfolioProportionChartClickEvent>();
@@ -104,13 +105,14 @@ export class GfPortfolioProportionChartComponent
   }
 
   public ngAfterViewInit() {
+    this.hasViewInitialized = true;
     if (this.data) {
       this.initialize();
     }
   }
 
   public ngOnChanges() {
-    if (this.data) {
+    if (this.hasViewInitialized && this.data) {
       this.initialize();
     }
   }

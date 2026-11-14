@@ -92,7 +92,7 @@ function createActivity(date: string): Activity {
     unitPriceInAssetProfileCurrency: 100,
     value: 1000,
     valueInBaseCurrency: 1000
-  } as Activity;
+  };
 }
 
 function createSplit(

@@ -597,7 +597,7 @@ describe('ActivitiesService', () => {
       'adjusts %s activities',
       async (type) => {
         const activity = createActivity({ symbol: 'AAPL' });
-        activity.type = type as Activity['type'];
+        activity.type = type;
 
         const result = await getAdjustedActivity(activity, [
           createSplit('2021-01-01', 2, 1)
@@ -613,7 +613,7 @@ describe('ActivitiesService', () => {
       'leaves %s activities unchanged',
       async (type) => {
         const activity = createActivity({ symbol: 'AAPL' });
-        activity.type = type as Activity['type'];
+        activity.type = type;
 
         const result = await getAdjustedActivity(activity, [
           createSplit('2021-01-01', 2, 1)

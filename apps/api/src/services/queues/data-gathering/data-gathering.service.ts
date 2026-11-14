@@ -174,7 +174,7 @@ export class DataGatheringService {
             symbol,
             url,
             countries: countries ?? undefined,
-            currency: currency as string,
+            currency: currency,
             holdings: holdings ?? undefined,
             sectors: sectors ?? undefined
           },
@@ -413,7 +413,7 @@ export class DataGatheringService {
             jobId: `${getAssetProfileIdentifier({
               dataSource,
               symbol
-            })}-${format(date as Date, DATE_FORMAT, { in: utc })}`
+            })}-${format(date, DATE_FORMAT, { in: utc })}`
           }
         };
       })

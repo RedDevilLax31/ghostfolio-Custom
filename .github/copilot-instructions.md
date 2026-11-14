@@ -16,3 +16,8 @@
 
 - Keep code clean, modular, and easy to maintain.
 - Favor clarity and readability over overly clever or compressed code.
+
+## 4. Development Environment
+
+- When asked to start, launch, run, or prepare the local development environment, use the `start-dev-environment` skill.
+- Use [DEVELOPMENT.md](../DEVELOPMENT.md) for setup details not covered by the skill.

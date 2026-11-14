@@ -680,7 +680,7 @@ export class ActivitiesService {
               }
             }
           },
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+
           SymbolProfile: {
             select: {
               currency: true,
@@ -862,7 +862,7 @@ export class ActivitiesService {
     });
 
     return {
-      activitiesCount: _count as number,
+      activitiesCount: _count,
       dateOfFirstActivity: _min.date
     };
   }

@@ -298,7 +298,7 @@ export class ManualService implements DataProviderInterface {
     let locale = scraperConfiguration.locale;
 
     const response = await this.fetchService.fetch(scraperConfiguration.url, {
-      headers: scraperConfiguration.headers as HeadersInit,
+      headers: scraperConfiguration.headers,
       signal: AbortSignal.timeout(
         this.configurationService.get('REQUEST_TIMEOUT')
       )

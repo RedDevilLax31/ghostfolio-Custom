@@ -538,7 +538,10 @@ export abstract class PortfolioCalculator {
         marketPrice:
           marketSymbolMap[endDateString]?.[
             assetProfileIdentifier
-          ]?.toNumber() ?? 1,
+          ]?.toNumber() ??
+          (item.dataSource === DataSource.MANUAL
+            ? 1
+            : item.averagePrice.toNumber()),
         marketPriceInBaseCurrency: marketPriceInBaseCurrency?.toNumber() ?? 1,
         netPerformance: !hasErrors ? (netPerformance ?? null) : null,
         netPerformancePercentage: !hasErrors

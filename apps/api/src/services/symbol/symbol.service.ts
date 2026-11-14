@@ -50,7 +50,7 @@ export class SymbolService {
         symbol: dataGatheringItem.symbol
       });
 
-      marketPrice = latestMarketData?.marketPrice as number;
+      marketPrice = latestMarketData?.marketPrice;
     } else {
       const quotes = await this.dataProviderService.getQuotes({
         items: [dataGatheringItem]
@@ -168,10 +168,10 @@ export class SymbolService {
       fearAndGreedIndex: {
         CRYPTOCURRENCIES: {
           ...marketDataFearAndGreedIndexCryptocurrencies
-        } as SymbolItem,
+        },
         STOCKS: {
           ...marketDataFearAndGreedIndexStocks
-        } as SymbolItem
+        }
       }
     };
   }

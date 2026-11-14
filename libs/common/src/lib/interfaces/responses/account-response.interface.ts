@@ -1,3 +1,3 @@
 import { AccountWithValue } from '@ghostfolio/common/types';
 
-export interface AccountResponse extends AccountWithValue {}
+export type AccountResponse = AccountWithValue;

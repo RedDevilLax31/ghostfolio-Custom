@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 // Run tests in UTC for deterministic date-based calculations. Set TEST_TZ to
 // run them with the instance in another time zone.
 process.env.TZ = process.env.TEST_TZ ?? 'UTC';

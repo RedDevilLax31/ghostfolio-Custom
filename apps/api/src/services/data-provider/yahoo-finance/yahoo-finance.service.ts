@@ -28,10 +28,7 @@ import { uniqBy } from 'lodash-es';
 import ms from 'ms';
 import YahooFinance from 'yahoo-finance2';
 import type { ChartResultArray } from 'yahoo-finance2/modules/chart';
-import type {
-  HistoricalDividendsResult,
-  HistoricalHistoryResult
-} from 'yahoo-finance2/modules/historical';
+import type { HistoricalDividendsResult } from 'yahoo-finance2/modules/historical';
 import type { Quote, QuoteResponseArray } from 'yahoo-finance2/modules/quote';
 import type {
   Price,
@@ -400,7 +397,7 @@ export class YahooFinanceService implements DataProviderInterface {
 
   private convertToHistoricalResult(
     result: ChartResultArray
-  ): HistoricalHistoryResult {
+  ): ChartResultArray['quotes'] {
     return result.quotes;
   }
 
@@ -425,6 +422,9 @@ export class YahooFinanceService implements DataProviderInterface {
       )
       .map(({ value }) => {
         return value.price;
+      })
+      .filter((price): price is Price => {
+        return Boolean(price);
       });
   }
 

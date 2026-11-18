@@ -13,7 +13,7 @@ import {
   isValidCustomAssetProfileSymbol,
   parseDate as parseDateHelper
 } from '@ghostfolio/common/helper';
-import { Activity } from '@ghostfolio/common/interfaces';
+import { Activity, ImportResponse } from '@ghostfolio/common/interfaces';
 import type { Account } from '@ghostfolio/prisma/browser';
 import { DataSource, Type as ActivityType } from '@ghostfolio/prisma/enums';
 
@@ -57,6 +57,25 @@ export class ImportActivitiesService {
     return Math.max(lineCount - 1, 0);
   }
 
+  public getSkippedRowsCsv(rows: Record<string, unknown>[]) {
+    const serializableRows = rows.map((row) =>
+      Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [
+          key,
+          value instanceof Date
+            ? value.toISOString()
+            : value !== null && typeof value === 'object'
+              ? JSON.stringify(value)
+              : value
+        ])
+      )
+    );
+
+    return XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(serializableRows), {
+      blankrows: false
+    });
+  }
+
   public async importCsv({
     activityTagIds,
     fileContent,
@@ -74,9 +93,15 @@ export class ImportActivitiesService {
   }): Promise<{
     activities: Activity[];
     assetProfiles: CreateAssetProfileWithMarketDataDto[];
+    skippedActivities?: Activity[];
+    sourceRows: Record<string, unknown>[];
   }> {
     const content = csvToJson<Record<string, unknown>>(fileContent, {
       dynamicTyping: true,
+      header: true,
+      skipEmptyLines: true
+    }).data;
+    const sourceRows = csvToJson<Record<string, unknown>>(fileContent, {
       header: true,
       skipEmptyLines: true
     }).data;
@@ -158,7 +183,7 @@ export class ImportActivitiesService {
       isDryRun,
       tags
     });
-    return { ...result, assetProfiles };
+    return { ...result, assetProfiles, sourceRows };
   }
 
   public async importXlsx({
@@ -188,6 +213,16 @@ export class ImportActivitiesService {
 
     const rows = this.getSpreadsheetRows(worksheet);
     const skippedRowsData: Record<string, unknown>[] = [];
+    const sourceRows: Record<string, unknown>[] = [];
+    const originalRows = new Map<
+      Record<string, unknown>,
+      Record<string, unknown>
+    >();
+    const pairedRows = new Map<
+      Record<string, unknown>,
+      Record<string, unknown>
+    >();
+    const relatedSourceRows: Record<number, Record<string, unknown>[]> = {};
     const pairedReinvestmentIndexes = new Set<number>();
     const preparedRows =
       platformName?.toLowerCase() === 'vanguard'
@@ -238,13 +273,14 @@ export class ImportActivitiesService {
               if (quantity && dividendAmount !== undefined) {
                 pairedReinvestmentIndexes.add(reinvestmentIndex);
 
-                return [
-                  {
-                    ...row,
-                    Price: dividendAmount / quantity,
-                    Quantity: quantity
-                  }
-                ];
+                const preparedRow = {
+                  ...row,
+                  Price: dividendAmount / quantity,
+                  Quantity: quantity
+                };
+                originalRows.set(preparedRow, row);
+                pairedRows.set(preparedRow, reinvestment);
+                return [preparedRow];
               }
             }
 
@@ -305,6 +341,11 @@ export class ImportActivitiesService {
         return [];
       }
 
+      sourceRows.push(originalRows.get(row) ?? row);
+      const pairedRow = pairedRows.get(row);
+      if (pairedRow) {
+        relatedSourceRows[sourceRows.length - 1] = [pairedRow];
+      }
       return [
         {
           Currency: currency,
@@ -333,6 +374,18 @@ export class ImportActivitiesService {
           isDryRun,
           selectedAccountId,
           userAccounts
+        });
+        result.activities = result.activities.map((activity) => {
+          const row = rowsToImport[activity.importIndex ?? -1];
+          const importIndex = supportedRows.indexOf(row);
+
+          if (importIndex < 0) {
+            throw new Error(
+              'The imported activity could not be matched to its source row'
+            );
+          }
+
+          return { ...activity, importIndex };
         });
 
         break;
@@ -377,6 +430,18 @@ export class ImportActivitiesService {
         tags: [{ id: TAG_ID_DRAFT, name: 'DRAFT' }],
         userAccounts
       });
+      draftResult.activities = draftResult.activities.map((activity) => {
+        const row = draftRows[activity.importIndex ?? -1];
+        const importIndex = supportedRows.indexOf(row);
+
+        if (importIndex < 0) {
+          throw new Error(
+            'The imported activity could not be matched to its source row'
+          );
+        }
+
+        return { ...activity, importIndex };
+      });
 
       result = result
         ? {
@@ -384,7 +449,8 @@ export class ImportActivitiesService {
             assetProfiles: [
               ...result.assetProfiles,
               ...draftResult.assetProfiles
-            ]
+            ],
+            sourceRows
           }
         : draftResult;
     }
@@ -397,6 +463,9 @@ export class ImportActivitiesService {
 
     return {
       ...result,
+      relatedSourceRows,
+      sourceRows,
+      skippedRowsData,
       skippedRows,
       skippedRowsFileContent: skippedRows
         ? XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(skippedRowsData), {
@@ -560,9 +629,7 @@ export class ImportActivitiesService {
     platforms?: CreatePlatformDto[];
     selectedAccountId?: string;
     tags?: CreateTagDto[];
-  }): Promise<{
-    activities: Activity[];
-  }> {
+  }): Promise<ImportResponse> {
     return firstValueFrom(
       this.postImport(
         {
@@ -596,9 +663,7 @@ export class ImportActivitiesService {
     platforms?: CreatePlatformDto[];
     selectedAccountId?: string;
     tags?: CreateTagDto[];
-  }): Promise<{
-    activities: Activity[];
-  }> {
+  }): Promise<ImportResponse> {
     const importData = activities.map((activity) =>
       this.convertToCreateOrderDto(activity)
     );
@@ -912,7 +977,7 @@ export class ImportActivitiesService {
     },
     aIsDryRun = false
   ) {
-    return this.http.post<{ activities: Activity[] }>(
+    return this.http.post<ImportResponse>(
       `/api/v1/import?dryRun=${aIsDryRun}`,
       aImportData
     );

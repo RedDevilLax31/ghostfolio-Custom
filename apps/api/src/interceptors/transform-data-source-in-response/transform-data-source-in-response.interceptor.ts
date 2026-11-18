@@ -94,6 +94,7 @@ export class TransformDataSourceInResponseInterceptor<
               'items[*].dataSource',
               'latestActivities[*].assetProfile.dataSource',
               'settings["filters.dataSource"]',
+              'skippedActivities[*].assetProfile.dataSource',
               'watchlist[*].dataSource'
             ]
           });

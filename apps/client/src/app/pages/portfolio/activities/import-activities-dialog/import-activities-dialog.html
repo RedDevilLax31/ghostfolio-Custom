@@ -150,16 +150,25 @@
                     file.</span
                   >
                 </div>
-                @if (skippedRowsFileContent) {
-                  <button
-                    mat-button
-                    type="button"
-                    (click)="downloadSkippedRows()"
-                  >
-                    <span i18n>Download skipped rows</span>
-                  </button>
-                }
               </div>
+            }
+            @if (duplicateRows > 0) {
+              <div class="align-items-center d-flex mb-3 ps-1">
+                <ion-icon class="me-2" name="warning-outline" />
+                <span i18n
+                  >{{ duplicateRows }} duplicate records were skipped.</span
+                >
+              </div>
+            }
+            @if (importedCount > 0) {
+              <div class="mb-3 ps-1" i18n>
+                {{ importedCount }} activities were imported.
+              </div>
+            }
+            @if (skippedRowsFileContent) {
+              <button mat-button type="button" (click)="downloadSkippedRows()">
+                <span i18n>Download skipped rows</span>
+              </button>
             }
             @if (rowsWithoutMatch.length > 0) {
               <mat-accordion class="d-block mb-3" displayMode="flat">

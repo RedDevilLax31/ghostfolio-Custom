@@ -176,6 +176,7 @@ export class GfImportActivitiesDialogComponent {
     inject<ImportActivitiesDialogParams>(MAT_DIALOG_DATA);
   protected dataSource: MatTableDataSource<Activity>;
   protected details: any[] = [];
+  protected duplicateRows = 0;
   protected dialogTitle = $localize`Import Activities`;
   protected errorMessages: string[] = [];
   protected readonly ghostfolioAiLoadingText = $localize`Ghostfolio AI is processing the file...`;
@@ -195,6 +196,7 @@ export class GfImportActivitiesDialogComponent {
     this.data.user?.settings?.isGhostfolioAiEnabled === true;
 
   protected isLoading = false;
+  protected importedCount = 0;
   protected isMaxActivitiesOfGhostfolioAiReached = false;
   protected readonly isSubmitting = signal(false);
   protected readonly language = document.documentElement.lang;
@@ -216,7 +218,10 @@ export class GfImportActivitiesDialogComponent {
   private activities: Activity[] = [];
   private assetProfiles: CreateAssetProfileWithMarketDataDto[] = [];
   private hasChangedUserSettings = false;
+  private hasImportedActivities = false;
   private platforms: CreatePlatformDto[] = [];
+  private skippedRowsData: Record<string, unknown>[] = [];
+  private sourceRowsByActivityId = new Map<string, Record<string, unknown>[]>();
   private tags: CreateTagDto[] = [];
 
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
@@ -300,7 +305,7 @@ export class GfImportActivitiesDialogComponent {
   }
 
   protected onCancel() {
-    this.dialogRef.close({ withRefresh: false });
+    this.dialogRef.close({ withRefresh: this.hasImportedActivities });
   }
 
   protected async onImportActivities() {
@@ -309,14 +314,61 @@ export class GfImportActivitiesDialogComponent {
     try {
       this.snackBar.open('⏳ ' + $localize`Importing data...`);
 
-      await this.importActivitiesService.importSelectedActivities({
-        accounts: this.accounts,
-        activities: this.selectedActivities,
-        assetProfiles: this.assetProfiles,
-        platforms: this.platforms,
-        selectedAccountId: this.selectedAccountId,
-        tags: this.tags
-      });
+      const { activities, skippedActivities = [] } =
+        await this.importActivitiesService.importSelectedActivities({
+          accounts: this.accounts,
+          activities: this.selectedActivities,
+          assetProfiles: this.assetProfiles,
+          platforms: this.platforms,
+          selectedAccountId: this.selectedAccountId,
+          tags: this.tags
+        });
+
+      this.hasImportedActivities ||= activities.length > 0;
+      this.importedCount += activities.length;
+
+      if (skippedActivities.length > 0 || this.duplicateRows > 0) {
+        for (const activity of skippedActivities) {
+          const selectedActivity =
+            this.selectedActivities[activity.importIndex ?? -1];
+          const sourceRows =
+            selectedActivity &&
+            (this.sourceRowsByActivityId.get(selectedActivity.id) ??
+              (this.mode === 'DIVIDEND'
+                ? [{ ...selectedActivity }]
+                : undefined));
+
+          if (!sourceRows) {
+            throw new Error(
+              'The skipped activity could not be matched to its source row'
+            );
+          }
+
+          this.skippedRowsData.push(
+            ...sourceRows.map((row) => ({
+              ...row,
+              'Import issue': 'Duplicate record'
+            }))
+          );
+        }
+
+        this.duplicateRows += skippedActivities.length;
+        this.skippedRowsFileContent =
+          this.importActivitiesService.getSkippedRowsCsv(this.skippedRowsData);
+        const submittedIds = new Set(
+          this.selectedActivities.map(({ id }) => id)
+        );
+        this.activities = this.activities.filter(
+          ({ id }) => !submittedIds.has(id)
+        );
+        this.dataSource = new MatTableDataSource(this.activities);
+        this.totalItems = this.activities.length;
+        this.selectedActivities = [];
+        this.isSubmitting.set(false);
+        this.snackBar.dismiss();
+        this.changeDetectorRef.markForCheck();
+        return;
+      }
 
       this.snackBar.open(
         '✅ ' + $localize`Import has been completed`,
@@ -325,7 +377,9 @@ export class GfImportActivitiesDialogComponent {
           duration: ms('3 seconds')
         }
       );
+      this.dialogRef.close({ withRefresh: true });
     } catch (error) {
+      console.error(error);
       this.snackBar.open(
         $localize`Oops! Something went wrong.` +
           ' ' +
@@ -336,7 +390,7 @@ export class GfImportActivitiesDialogComponent {
         }
       );
     } finally {
-      this.dialogRef.close({ withRefresh: true });
+      this.isSubmitting.set(false);
     }
   }
 
@@ -419,6 +473,8 @@ export class GfImportActivitiesDialogComponent {
 
   protected onReset(aStepper: MatStepper) {
     this.details = [];
+    this.duplicateRows = 0;
+    this.importedCount = 0;
     this.errorMessages = [];
     this.importStep = ImportStep.SELECT_ACTIVITIES;
     this.isMaxActivitiesOfGhostfolioAiReached = false;
@@ -426,14 +482,17 @@ export class GfImportActivitiesDialogComponent {
     this.rowsWithoutMatch = [];
     this.skippedRows = 0;
     this.skippedRowsFileContent = undefined;
+    this.skippedRowsData = [];
+    this.sourceRowsByActivityId.clear();
     this.assetProfileForm.controls.assetProfileIdentifier.enable();
 
     aStepper.reset();
   }
 
   protected updateSelection(activities: Activity[]) {
-    this.selectedActivities = activities.filter(({ error }) => {
-      return !error;
+    const availableIds = new Set(this.activities.map(({ id }) => id));
+    this.selectedActivities = activities.filter(({ error, id }) => {
+      return !error && availableIds.has(id);
     });
   }
 
@@ -494,11 +553,15 @@ export class GfImportActivitiesDialogComponent {
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
     this.details = [];
+    this.duplicateRows = 0;
+    this.importedCount = 0;
     this.errorMessages = [];
     this.isMaxActivitiesOfGhostfolioAiReached = false;
     this.rowsWithoutMatch = [];
     this.skippedRows = 0;
     this.skippedRowsFileContent = undefined;
+    this.skippedRowsData = [];
+    this.sourceRowsByActivityId.clear();
 
     if (fileExtension === 'xlsx') {
       this.snackBar.open('⏳ ' + $localize`Validating data...`);
@@ -507,8 +570,10 @@ export class GfImportActivitiesDialogComponent {
         const {
           activities,
           assetProfiles,
+          relatedSourceRows,
           skippedRows,
-          skippedRowsFileContent
+          skippedRowsData,
+          sourceRows
         } = await this.importActivitiesService.importXlsx({
           file,
           isDryRun: true,
@@ -521,11 +586,15 @@ export class GfImportActivitiesDialogComponent {
           userAccounts: this.data.user.accounts
         });
 
-        this.activities = activities;
+        this.setImportPreview({
+          activities,
+          relatedSourceRows,
+          skippedRowsData,
+          sourceRows
+        });
         this.assetProfiles = assetProfiles;
         this.tags = [{ id: TAG_ID_DRAFT, name: 'DRAFT' }];
         this.skippedRows = skippedRows;
-        this.skippedRowsFileContent = skippedRowsFileContent;
         this.dataSource = new MatTableDataSource(activities.reverse());
         this.pageIndex = 0;
         this.totalItems = activities.length;
@@ -608,7 +677,10 @@ export class GfImportActivitiesDialogComponent {
                 tags: content.tags
               });
 
-            this.activities = activities;
+            this.setImportPreview({
+              activities,
+              sourceRows: content.activities
+            });
             this.dataSource = new MatTableDataSource(activities.reverse());
             this.pageIndex = 0;
             this.totalItems = activities.length;
@@ -622,7 +694,7 @@ export class GfImportActivitiesDialogComponent {
           const content = fileContent.split('\n').slice(1);
 
           try {
-            const { activities, assetProfiles } =
+            const { activities, assetProfiles, sourceRows } =
               await this.importActivitiesService.importCsv({
                 fileContent,
                 isDryRun: true,
@@ -630,7 +702,7 @@ export class GfImportActivitiesDialogComponent {
                 userAccounts: this.data.user.accounts
               });
 
-            this.activities = activities;
+            this.setImportPreview({ activities, sourceRows });
             this.assetProfiles = assetProfiles;
             this.dataSource = new MatTableDataSource(activities.reverse());
             this.pageIndex = 0;
@@ -687,9 +759,9 @@ export class GfImportActivitiesDialogComponent {
         await this.getActivitiesOfCsvInGhostfolioFormat(file);
 
       if (csvInGhostfolioFormat) {
-        const { activities, assetProfiles } = csvInGhostfolioFormat;
+        const { activities, assetProfiles, sourceRows } = csvInGhostfolioFormat;
 
-        this.activities = activities;
+        this.setImportPreview({ activities, sourceRows });
         this.assetProfiles = assetProfiles;
         this.dataSource = new MatTableDataSource(activities.reverse());
         this.pageIndex = 0;
@@ -768,7 +840,10 @@ export class GfImportActivitiesDialogComponent {
           this.showSelectActivitiesStep(stepper);
         },
         next: ({ activities }) => {
-          this.activities = activities;
+          this.setImportPreview({
+            activities,
+            sourceRows: activitiesOfFile.map((activity) => ({ ...activity }))
+          });
           this.dataSource = new MatTableDataSource(activities.reverse());
           this.pageIndex = 0;
           this.totalItems = activities.length;
@@ -792,14 +867,88 @@ export class GfImportActivitiesDialogComponent {
     });
   }
 
+  private setImportPreview({
+    activities,
+    relatedSourceRows = {},
+    skippedRowsData = [],
+    sourceRows
+  }: {
+    activities: Activity[];
+    relatedSourceRows?: Record<number, Record<string, unknown>[]>;
+    skippedRowsData?: Record<string, unknown>[];
+    sourceRows: Record<string, unknown>[];
+  }) {
+    this.activities = activities;
+    this.skippedRowsData = [...skippedRowsData];
+    this.sourceRowsByActivityId.clear();
+
+    for (const activity of activities) {
+      const sourceRow = sourceRows[activity.importIndex ?? -1];
+
+      if (!sourceRow) {
+        throw new Error(
+          'The imported activity could not be matched to its source row'
+        );
+      }
+
+      const sourceRowsForActivity = [
+        sourceRow,
+        ...(relatedSourceRows[activity.importIndex ?? -1] ?? [])
+      ];
+      this.sourceRowsByActivityId.set(activity.id, sourceRowsForActivity);
+
+      if (activity.error?.code === 'IS_DUPLICATE') {
+        this.duplicateRows++;
+        this.skippedRowsData.push(
+          ...sourceRowsForActivity.map((row) => ({
+            ...row,
+            'Import issue': 'Duplicate record'
+          }))
+        );
+      }
+    }
+
+    this.skippedRowsFileContent = this.skippedRowsData.length
+      ? this.importActivitiesService.getSkippedRowsCsv(this.skippedRowsData)
+      : undefined;
+  }
+
   private handleImportError({
     activities,
     error
   }: {
     activities: any[];
-    error: any;
+    error: unknown;
   }) {
-    this.errorMessages = error?.error?.message;
+    const response =
+      error && typeof error === 'object' && 'error' in error
+        ? error.error
+        : undefined;
+    const responseMessage =
+      response && typeof response === 'object' && 'message' in response
+        ? response.message
+        : undefined;
+    const messages = Array.isArray(responseMessage)
+      ? responseMessage
+      : [responseMessage];
+    this.errorMessages = messages.filter(
+      (message): message is string =>
+        typeof message === 'string' && message.trim().length > 0
+    );
+
+    if (this.errorMessages.length === 0) {
+      this.errorMessages = [
+        error instanceof Error && error.message
+          ? error.message
+          : $localize`Oops! Something went wrong. Please try again later.`
+      ];
+    }
+
+    this.activities = [];
+    this.selectedActivities = [];
+    this.dataSource = new MatTableDataSource<Activity>([]);
+    this.totalItems = 0;
+    this.details = [];
 
     for (const message of this.errorMessages) {
       if (message.includes('activities.')) {

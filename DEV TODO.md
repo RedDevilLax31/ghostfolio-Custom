@@ -26,7 +26,9 @@
   - [x] import specific processes based on platform of the account
 - [ ] Correct Fidelity import process
 - [ ] Correct 401k import process (needs to split roth and trad transactions)
-- [ ] Prevent duplicate records from loading
+- [x] Prevent duplicate records from loading
+  - Duplicate imports are checked by account, timestamp, type, asset, quantity, price, currency, and fees. Skipped rows can be downloaded from the import preview.
+  - Simultaneous imports are not serialized and may still race; matching transactions can represent legitimate separate trades.
 - [ ] Does this handle stock splits? - vanguard - should this be manual as its really an exception process?
 - [ ] Does this handle company merges? - vanguard - should this be manual as its really an exception process?
 - [ ] Run automatic data gathering for any new holdings imported
@@ -57,3 +59,4 @@
 - [x] suggested copilot skills, instructions, and hooks to improve processes
 - [x] SSH coding set up with laptop
 - [ ] Is automatic data gathering needed after a certain amount of time?
+- [ ] Reset admin passcode to regular password

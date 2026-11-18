@@ -6,6 +6,7 @@ export interface Activity extends Order {
   account?: AccountWithPlatform;
   assetProfile: EnhancedAssetProfile;
   error?: ActivityError;
+  importIndex?: number;
   feeInAssetProfileCurrency: number;
   feeInBaseCurrency: number;
   tagIds?: string[];

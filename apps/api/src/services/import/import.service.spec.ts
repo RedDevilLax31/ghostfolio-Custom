@@ -33,6 +33,9 @@ describe('ImportService', () => {
   let addSymbolProfile: jest.Mock;
   let createActivity: jest.Mock;
   let gatherSymbols: jest.Mock;
+  let getActivities: jest.Mock;
+  let getAccounts: jest.Mock;
+  let getCustomSymbolProfilesByNames: jest.Mock;
   let importService: ImportService;
   let updateManyMarketData: jest.Mock;
 
@@ -46,6 +49,9 @@ describe('ImportService', () => {
     addSymbolProfile = jest.fn();
     createActivity = jest.fn();
     gatherSymbols = jest.fn();
+    getActivities = jest.fn().mockResolvedValue({ activities: [], count: 0 });
+    getAccounts = jest.fn().mockResolvedValue([]);
+    getCustomSymbolProfilesByNames = jest.fn().mockResolvedValue([]);
     updateManyMarketData = jest.fn();
 
     const validateActivities = jest.fn(
@@ -69,11 +75,11 @@ describe('ImportService', () => {
 
     importService = new ImportService(
       {
-        accounts: jest.fn().mockResolvedValue([])
+        accounts: getAccounts
       } as unknown as AccountService,
       {
         createActivity,
-        getActivities: jest.fn().mockResolvedValue({ activities: [], count: 0 })
+        getActivities
       } as unknown as ActivitiesService,
       null,
       {
@@ -94,7 +100,7 @@ describe('ImportService', () => {
       null,
       {
         add: addSymbolProfile,
-        getCustomSymbolProfilesByNames: jest.fn().mockResolvedValue([]),
+        getCustomSymbolProfilesByNames,
         getSymbolProfiles: jest.fn().mockResolvedValue([])
       } as unknown as SymbolProfileService,
       {
@@ -154,6 +160,152 @@ describe('ImportService', () => {
   });
 
   describe('import', () => {
+    it('matches an existing draft after resolving its custom asset symbol', async () => {
+      getCustomSymbolProfilesByNames.mockResolvedValue([
+        {
+          name: 'Unresolved asset',
+          symbol: CUSTOM_ASSET_PROFILE_SYMBOL
+        }
+      ]);
+      getActivities.mockResolvedValue({
+        activities: [
+          {
+            accountId: null,
+            currency: 'USD',
+            date: new Date('2024-01-01T00:00:00Z'),
+            fee: 0,
+            quantity: 1,
+            type: 'BUY',
+            unitPrice: 100,
+            assetProfile: {
+              currency: 'USD',
+              dataSource: DataSource.MANUAL,
+              symbol: CUSTOM_ASSET_PROFILE_SYMBOL
+            }
+          }
+        ]
+      });
+
+      const activities = await importActivities({
+        activitiesDto: [
+          createActivityDto({
+            dataSource: DataSource.MANUAL,
+            date: '2024-01-01T00:00:00Z',
+            symbol: 'fc2aa2a1-0c71-449f-93e6-a58c096bd3c5',
+            type: 'BUY'
+          })
+        ],
+        assetProfilesWithMarketDataDto: [
+          {
+            currency: 'USD',
+            dataSource: DataSource.MANUAL,
+            marketData: [],
+            name: 'Unresolved asset',
+            symbol: 'fc2aa2a1-0c71-449f-93e6-a58c096bd3c5'
+          }
+        ],
+        isDryRun: true
+      });
+
+      expect(activities[0].error).toEqual({ code: 'IS_DUPLICATE' });
+    });
+
+    it('matches existing activities by account and fields, ignoring comments', async () => {
+      getAccounts.mockResolvedValue([
+        { id: 'account-a', name: 'A' },
+        { id: 'account-b', name: 'B' }
+      ]);
+      getActivities.mockResolvedValue({
+        activities: [
+          {
+            accountId: 'account-a',
+            comment: 'original',
+            currency: null,
+            date: new Date('2024-01-01T00:00:00.500Z'),
+            fee: 0,
+            quantity: 1,
+            type: 'BUY',
+            unitPrice: 100,
+            assetProfile: {
+              currency: 'USD',
+              dataSource: DataSource.YAHOO,
+              symbol: 'AAPL'
+            }
+          }
+        ]
+      });
+      const base = {
+        ...createActivityDto({
+          dataSource: DataSource.YAHOO,
+          date: '2024-01-01T00:00:00.000Z',
+          symbol: 'AAPL',
+          type: 'BUY'
+        }),
+        accountId: 'account-a',
+        comment: 'changed'
+      };
+
+      const activities = await importActivities({
+        activitiesDto: [
+          base,
+          { ...base, accountId: 'account-b' },
+          { ...base, fee: 1 },
+          { ...base, quantity: 2 },
+          { ...base, unitPrice: 101 },
+          { ...base, currency: 'EUR' },
+          { ...base, date: '2024-01-01T00:00:01.000Z' },
+          { ...base, symbol: 'MSFT' },
+          { ...base, dataSource: DataSource.ALPHA_VANTAGE },
+          { ...base, type: 'SELL' }
+        ],
+        isDryRun: true
+      });
+
+      expect(
+        activities.find(({ importIndex }) => importIndex === 0)?.error
+      ).toEqual({ code: 'IS_DUPLICATE' });
+      expect(activities.filter(({ error }) => error)).toHaveLength(1);
+      expect(getActivities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-id',
+          includeDrafts: true,
+          withExcludedAccountsAndActivities: true
+        })
+      );
+    });
+
+    it('keeps the first same-file activity and reports later duplicates on submission', async () => {
+      const base = createActivityDto({
+        dataSource: DataSource.YAHOO,
+        date: '2024-01-02T00:00:00.000Z',
+        symbol: 'AAPL',
+        type: 'BUY'
+      });
+      createActivity.mockImplementation(async (data) => ({
+        ...data,
+        id: 'created',
+        SymbolProfile: data.SymbolProfile.connectOrCreate.create
+      }));
+
+      const activities = await importActivities({
+        activitiesDto: [
+          base,
+          { ...base, comment: 'different comment' },
+          { ...base, date: '2024-01-01T00:00:00.000Z' }
+        ],
+        includeSkipped: true
+      });
+
+      expect(createActivity).toHaveBeenCalledTimes(2);
+      expect(activities.map(({ importIndex }) => importIndex)).toEqual([
+        2, 0, 1
+      ]);
+      expect(
+        activities.find(({ importIndex }) => importIndex === 1)?.error
+      ).toEqual({ code: 'IS_DUPLICATE' });
+      expect(gatherSymbols.mock.calls[0][0].dataGatheringItems).toHaveLength(1);
+    });
+
     it('keeps the asset profile of an investment activity after a non-investment activity', async () => {
       mockCreatedAssetProfiles([
         { dataSource: DataSource.MANUAL, symbol: CUSTOM_ASSET_PROFILE_SYMBOL },
@@ -513,15 +665,18 @@ describe('ImportService', () => {
   function importActivities({
     activitiesDto,
     assetProfilesWithMarketDataDto = [],
+    includeSkipped,
     isDryRun
   }: {
     activitiesDto: CreateOrderDto[];
     assetProfilesWithMarketDataDto?: CreateAssetProfileWithMarketDataDto[];
+    includeSkipped?: boolean;
     isDryRun?: boolean;
   }) {
     return importService.import({
       activitiesDto,
       assetProfilesWithMarketDataDto,
+      includeSkipped,
       isDryRun,
       accountsWithBalancesDto: [],
       platformsDto: [],

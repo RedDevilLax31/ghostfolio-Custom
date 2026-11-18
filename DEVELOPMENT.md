@@ -7,7 +7,7 @@
 - [Docker](https://www.docker.com/products/docker-desktop)
 - [Node.js](https://nodejs.org/en/download) (version `>=22.23.5`)
 - Create a local copy of this Git repository (clone)
-- Copy the file `.env.dev` to `.env` and populate it with your data (`cp .env.dev .env`)
+- Populate `.env.dev` with your local configuration. Development commands load this file directly.
 
 ### Setup
 

@@ -1,6 +1,7 @@
 import { ImportValidationError } from '@ghostfolio/api/services/import/errors/import-validation.error';
 import { ImportDataDto } from '@ghostfolio/api/services/import/import-data.dto';
 import { ImportService } from '@ghostfolio/api/services/import/import.service';
+import { Activity } from '@ghostfolio/common/interfaces';
 import { permissions } from '@ghostfolio/common/permissions';
 import type { RequestWithUser } from '@ghostfolio/common/types';
 
@@ -33,6 +34,24 @@ describe('ImportController', () => {
   });
 
   describe('import', () => {
+    it('returns submission-time duplicates separately from created activities', async () => {
+      const created = { id: 'created', importIndex: 0 } as Activity;
+      const duplicate = {
+        id: 'preview',
+        importIndex: 1,
+        error: { code: 'IS_DUPLICATE' }
+      } as Activity;
+      jest.mocked(importService.import).mockResolvedValue([created, duplicate]);
+
+      await expect(importController.import(importData)).resolves.toEqual({
+        activities: [created],
+        skippedActivities: [duplicate]
+      });
+      expect(importService.import).toHaveBeenCalledWith(
+        expect.objectContaining({ includeSkipped: true })
+      );
+    });
+
     it('Gives the status 400 with the message of an error for the caller', async () => {
       jest
         .mocked(importService.import)

@@ -11,7 +11,7 @@ Start the local Ghostfolio development environment using the shortest working pa
 ## Procedure
 
 1. If `node_modules` does not exist, run `npm install`. If it exists, do not reinstall dependencies.
-2. If `.env` does not exist, run `cp .env.dev .env`. Never overwrite an existing `.env`.
+2. Ensure `.env.dev` exists and contains the local configuration. Development npm scripts load this file directly; do not copy it to or overwrite `.env`.
 3. Start PostgreSQL and Redis:
 
    ```bash

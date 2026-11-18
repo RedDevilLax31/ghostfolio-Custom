@@ -45,7 +45,7 @@ import {
 } from '@ghostfolio/common/types';
 
 import { Injectable } from '@nestjs/common';
-import { Account, DataSource, Prisma } from '@prisma/client';
+import { Account, DataSource, Prisma, SymbolProfile } from '@prisma/client';
 import { Big } from 'big.js';
 import { isISIN } from 'class-validator';
 import { isSameSecond, parseISO, subDays } from 'date-fns';
@@ -205,6 +205,7 @@ export class ImportService {
     accountsWithBalancesDto,
     activitiesDto,
     assetProfilesWithMarketDataDto,
+    includeSkipped = false,
     isDryRun = false,
     platformsDto,
     tagsDto,
@@ -213,6 +214,7 @@ export class ImportService {
     accountsWithBalancesDto: ImportDataDto['accounts'];
     activitiesDto: ImportDataDto['activities'];
     assetProfilesWithMarketDataDto: ImportDataDto['assetProfiles'];
+    includeSkipped?: boolean;
     isDryRun?: boolean;
     platformsDto: ImportDataDto['platforms'];
     tagsDto: ImportDataDto['tags'];
@@ -767,6 +769,7 @@ export class ImportService {
 
     const activitiesExtendedWithErrors = await this.extendActivitiesWithErrors({
       activitiesDto,
+      assetProfiles,
       userCurrency,
       userId: user.id
     });
@@ -860,7 +863,10 @@ export class ImportService {
       [assetProfileIdentifier: string]: string;
     } = {};
 
-    for (const activity of activitiesExtendedWithErrors) {
+    for (const [
+      importIndex,
+      activity
+    ] of activitiesExtendedWithErrors.entries()) {
       const accountId = activity.accountId;
       const comment = activity.comment;
       const currency = activity.currency;
@@ -897,7 +903,7 @@ export class ImportService {
             tags?: { id: string; name: string }[];
           });
 
-      if (isDryRun) {
+      if (isDryRun || (error && includeSkipped)) {
         const previewTags = getTagsWithDraftTag({
           date,
           draftTag,
@@ -1000,6 +1006,7 @@ export class ImportService {
         // @ts-ignore
         assetProfile,
         error,
+        importIndex,
         value,
         valueInBaseCurrency
       });
@@ -1011,12 +1018,15 @@ export class ImportService {
 
     if (!isDryRun) {
       // Gather symbol data in the background, if not dry run
-      const uniqueActivities = uniqBy(activities, ({ assetProfile }) => {
-        return getAssetProfileIdentifier({
-          dataSource: assetProfile.dataSource,
-          symbol: assetProfile.symbol
-        });
-      });
+      const uniqueActivities = uniqBy(
+        activities.filter(({ error }) => !error),
+        ({ assetProfile }) => {
+          return getAssetProfileIdentifier({
+            dataSource: assetProfile.dataSource,
+            symbol: assetProfile.symbol
+          });
+        }
+      );
 
       this.dataGatheringService.gatherSymbols({
         dataGatheringItems: uniqueActivities.map(({ assetProfile, date }) => {
@@ -1035,10 +1045,12 @@ export class ImportService {
 
   private async extendActivitiesWithErrors({
     activitiesDto,
+    assetProfiles,
     userCurrency,
     userId
   }: {
     activitiesDto: Partial<CreateOrderDto>[];
+    assetProfiles: { [identifier: string]: Partial<SymbolProfile> };
     userCurrency: string;
     userId: string;
   }): Promise<(Partial<Activity> & Pick<Activity, 'assetProfile'>)[]> {
@@ -1049,6 +1061,50 @@ export class ImportService {
         includeDrafts: true,
         withExcludedAccountsAndActivities: true
       });
+
+    const getDuplicateKey = ({
+      accountId,
+      currency,
+      dataSource,
+      date,
+      fee,
+      quantity,
+      symbol,
+      type,
+      unitPrice
+    }: {
+      accountId?: string | null;
+      currency?: string | null;
+      dataSource: DataSource;
+      date: Date;
+      fee: number;
+      quantity: number;
+      symbol: string;
+      type: Activity['type'];
+      unitPrice: number;
+    }) =>
+      JSON.stringify([
+        accountId ?? null,
+        currency ?? null,
+        dataSource,
+        Math.floor(date.getTime() / 1000),
+        fee,
+        quantity,
+        symbol,
+        type,
+        unitPrice
+      ]);
+
+    const seen = new Set(
+      existingActivities.map((activity) =>
+        getDuplicateKey({
+          ...activity,
+          currency: activity.currency ?? activity.assetProfile.currency,
+          dataSource: activity.assetProfile.dataSource,
+          symbol: activity.assetProfile.symbol
+        })
+      )
+    );
 
     return activitiesDto.map(
       ({
@@ -1066,20 +1122,21 @@ export class ImportService {
       }) => {
         const date = parseISO(dateString);
 
-        const isDuplicate = existingActivities.some((activity) => {
-          return (
-            (activity.comment || null) === (comment || null) &&
-            (activity.currency === currency ||
-              activity.assetProfile.currency === currency) &&
-            activity.assetProfile.dataSource === dataSource &&
-            isSameSecond(activity.date, date) &&
-            activity.fee === fee &&
-            activity.quantity === quantity &&
-            activity.assetProfile.symbol === symbol &&
-            activity.type === type &&
-            activity.unitPrice === unitPrice
-          );
+        const assetProfile =
+          assetProfiles[getAssetProfileIdentifier({ dataSource, symbol })];
+        const key = getDuplicateKey({
+          accountId,
+          currency: currency ?? assetProfile?.currency,
+          dataSource,
+          date,
+          fee,
+          quantity,
+          symbol,
+          type,
+          unitPrice
         });
+        const isDuplicate = seen.has(key);
+        seen.add(key);
 
         const error: ActivityError = isDuplicate
           ? { code: 'IS_DUPLICATE' }

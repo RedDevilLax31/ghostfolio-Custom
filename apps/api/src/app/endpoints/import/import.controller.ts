@@ -58,6 +58,7 @@ export class ImportController {
 
     try {
       const activities = await this.importService.import({
+        includeSkipped: !isDryRun,
         isDryRun,
         accountsWithBalancesDto: importData.accounts ?? [],
         activitiesDto: importData.activities,
@@ -67,7 +68,12 @@ export class ImportController {
         user: this.request.user
       });
 
-      return { activities };
+      return isDryRun
+        ? { activities }
+        : {
+            activities: activities.filter(({ error }) => !error),
+            skippedActivities: activities.filter(({ error }) => !!error)
+          };
     } catch (error) {
       this.logger.error(error);
 

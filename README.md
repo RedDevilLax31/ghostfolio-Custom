@@ -158,6 +158,34 @@ docker compose -f docker/docker-compose.build.yml up -d
 1. Open http://localhost:3333 in your browser
 1. Create a new user via _Get Started_ (this first user will get the role `ADMIN`)
 
+#### Recover an Admin Security Token
+
+An operator with trusted server and database access can recover an existing
+anonymous admin account without resetting the database. First back up the
+database, confirm the target environment, and identify the correct account.
+The command lists anonymous admin user IDs and creation dates; if these are not
+enough to identify the account, verify its ID through trusted database access.
+
+For a container built from this repository with the recovery command included:
+
+```bash
+docker compose -f docker/docker-compose.yml exec -it ghostfolio node recover-admin.js
+```
+
+Use the Compose file for the running instance if it differs. The command shows
+the database host and name, asks for the user ID, and requires the same ID as
+confirmation. Save the new security token securely when it is shown; it cannot
+be retrieved later. The previous token stops working.
+
+This command preserves portfolio data, registered biometric devices, and
+existing signed-in sessions. It does **not** revoke sessions if a token is
+compromised. It also does not correct inconsistent `ACCESS_TOKEN_SALT` values
+or other causes of intermittent sign-in failures. The command uses the
+container's `DATABASE_URL` and `ACCESS_TOKEN_SALT`, which must match the running
+API. Restrict server, container, and database access: anyone with sufficient
+access may be able to recover or change an account. Do not record terminal
+output or share the token.
+
 #### Upgrade Version
 
 1. Update the _Ghostfolio_ Docker image

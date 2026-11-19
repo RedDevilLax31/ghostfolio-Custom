@@ -36,6 +36,7 @@
     "postinstall": "prisma generate",
     "prepare": "husky",
     "prisma": "prisma",
+    "recover:admin:dev": "test -f .env.dev || { echo '.env.dev is missing' >&2; exit 1; }; DOTENV_CONFIG_PATH=.env.dev DOTENV_CONFIG_QUIET=true node -r dotenv-expand/config dist/apps/api/recover-admin.js",
     "replace-placeholders-in-build": "node ./replace.build.mjs",
     "start": "node dist/apps/api/main",
     "start:client": "npx dotenv-cli -e .env.dev -- nx run client:copy-assets && npx dotenv-cli -e .env.dev -- nx run client:serve --configuration=development-en --hmr -o",

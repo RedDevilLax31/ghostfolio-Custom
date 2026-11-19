@@ -9,6 +9,12 @@ const configValues = {
       compiler: 'tsc',
       deleteOutputPath: false,
       main: './src/main.ts',
+      additionalEntryPoints: [
+        {
+          entryName: 'recover-admin',
+          entryPath: './src/admin-recovery/main.ts'
+        }
+      ],
       outputPath: 'dist/apps/api',
       outputHashing: 'none',
       sourceMap: true,

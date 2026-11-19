@@ -18,6 +18,24 @@
 1. Open https://localhost:4200/en in your browser
 1. Create a new user via _Get Started_ (this first user will get the role `ADMIN`)
 
+### Recover an Admin Security Token
+
+Back up the development database and confirm that `.env.dev` targets the
+intended instance. Build the API and run the recovery command in an interactive
+terminal. Existing environment variables take precedence over `.env.dev`, as
+they do when loading the development configuration:
+
+```bash
+npx nx build api
+npm run recover:admin:dev
+```
+
+Choose the existing anonymous admin by user ID and confirm it when prompted.
+Store the displayed token securely; it is shown once. Recovery preserves
+authentication devices and existing sessions. See
+[admin recovery](README.md#recover-an-admin-security-token) for security
+considerations and production-container instructions.
+
 ### Start Server
 
 #### Debug

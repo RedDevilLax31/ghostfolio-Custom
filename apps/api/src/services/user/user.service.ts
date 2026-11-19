@@ -1,7 +1,10 @@
 import { environment } from '@ghostfolio/api/environments/environment';
 import { PortfolioChangedEvent } from '@ghostfolio/api/events/portfolio-changed.event';
+import {
+  createAccessToken,
+  generateAccessToken
+} from '@ghostfolio/api/helper/access-token.helper';
 import { getSupportedLanguageCode } from '@ghostfolio/api/helper/language.helper';
-import { getRandomString } from '@ghostfolio/api/helper/string.helper';
 import { getXRayRulesSettings } from '@ghostfolio/api/models/rules/rule-settings';
 import { ActivitiesService } from '@ghostfolio/api/services/activities/activities.service';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
@@ -49,7 +52,6 @@ import { InjectThrottlerStorage, ThrottlerStorage } from '@nestjs/throttler';
 import { Prisma, RequestClient, Role, User } from '@prisma/client';
 import { addMilliseconds, differenceInDays, isBefore, subDays } from 'date-fns';
 import { isNil, without } from 'lodash-es';
-import { createHmac } from 'node:crypto';
 
 @Injectable()
 export class UserService {
@@ -79,24 +81,14 @@ export class UserService {
     password: string;
     salt: string;
   }): string {
-    const hash = createHmac('sha512', salt);
-    hash.update(password);
-
-    return hash.digest('hex');
+    return createAccessToken({ password, salt });
   }
 
   public generateAccessToken({ userId }: { userId: string }) {
-    const accessToken = this.createAccessToken({
-      password: userId,
-      salt: getRandomString(10)
+    return generateAccessToken({
+      salt: this.configurationService.get('ACCESS_TOKEN_SALT'),
+      userId
     });
-
-    const hashedAccessToken = this.createAccessToken({
-      password: accessToken,
-      salt: this.configurationService.get('ACCESS_TOKEN_SALT')
-    });
-
-    return { accessToken, hashedAccessToken };
   }
 
   public async getUser({

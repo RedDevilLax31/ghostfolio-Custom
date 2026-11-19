@@ -7,7 +7,7 @@
 
 ## Bugfixes
 
-- [ ] Overview not showing any value after vanguard import process 55% to 66% = 11%
+- [x] Overview not showing any value after vanguard import process 55% to 66% = 11%
       -[x] Yahoo API retrieve limit?
       -[x] Longer Development code cache
       -[x] Yahoo Request Throttling
@@ -59,4 +59,4 @@
 - [x] suggested copilot skills, instructions, and hooks to improve processes
 - [x] SSH coding set up with laptop
 - [ ] Is automatic data gathering needed after a certain amount of time?
-- [ ] Reset admin passcode to regular password
+- [x] Reset admin passcode to regular password

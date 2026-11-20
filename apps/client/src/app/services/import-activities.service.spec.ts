@@ -1,3 +1,4 @@
+import { TAG_ID_DRAFT } from '@ghostfolio/common/config';
 import { Activity } from '@ghostfolio/common/interfaces';
 
 import { provideHttpClient } from '@angular/common/http';
@@ -10,12 +11,199 @@ jest.mock('uuid', () => ({ v4: () => '1ad7d4a2-6b2d-4e0f-9b1f-2c0f8d3e5a7b' }));
 
 describe('ImportActivitiesService', () => {
   let service: ImportActivitiesService;
+  const fidelityHeader =
+    'Run Date,Action,Symbol,Description,Type,Price ($),Quantity,Commission ($),Fees ($),Accrued Interest ($),Amount ($),Cash Balance ($),Settlement Date\n';
+  const fidelityRows =
+    '04/17/2026,DIVIDEND RECEIVED EXAMPLE (VOO) (Cash),VOO,Example,Cash,,0.0,,,,7.22,7.78,\n' +
+    '03/16/2026,REINVESTMENT CASH (315994103) (Cash),315994103,CASH,Cash,1.0,0.12,,,,-0.12,0.56,\n' +
+    '03/16/2026,INTEREST EARNED CASH (315994103) (Cash),315994103,CASH,Cash,,0.0,,,,0.12,0.56,\n' +
+    '03/07/2026,YOU BOUGHT EXAMPLE (VOO) (Cash),VOO,Example,Cash,630.4,3.0,0.10,0.20,,-1891.2,0.44,03/08/2026\n' +
+    '03/07/2026,YOU BOUGHT EXAMPLE (VOO) (Cash),VOO,Example,Cash,630.4,0.854,,,,-538.36,1891.64,03/08/2026\n' +
+    '03/06/2026,YOU SOLD EXAMPLE (JNJ) (Cash),JNJ,Example,Cash,243.0,-10.0,,,,2430.0,2430.0,03/07/2026\n' +
+    '03/02/2026,YOU BOUGHT RSU#### EXAMPLE (JNJ) (Cash),JNJ,Example,Cash,,10.0,,,,0.0,0.0,03/06/2026\n' +
+    'The data and information in this spreadsheet is provided for your use,,,,,,,,,,,,\n' +
+    '"More legal text, with a comma",,,,,,,,,,,,\n' +
+    'Date downloaded 04/25/2026,,,,,,,,,,,,\n';
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [ImportActivitiesService, provideHttpClient()]
     });
     service = TestBed.inject(ImportActivitiesService);
+  });
+
+  it('maps Fidelity transactions and tags vested RSUs without importing the cash sweep or footer', async () => {
+    const importJson = jest
+      .spyOn(service, 'importJson')
+      .mockImplementation(async ({ activities }) => ({
+        activities: activities.map((_, index) => ({
+          id: `${index}`,
+          importIndex: index
+        })) as Activity[]
+      }));
+
+    const result = await service.importFidelityCsv({
+      fileContent: fidelityHeader + fidelityRows,
+      isDryRun: true,
+      selectedAccountId: 'account',
+      userAccounts: [],
+      userTags: [{ id: 'existing-rsu-tag', name: 'Vested RSUs' }]
+    });
+
+    const activities = importJson.mock.calls[0][0].activities;
+    expect(activities).toHaveLength(6);
+    expect(activities.map(({ type }) => type)).toEqual([
+      'DIVIDEND',
+      'INTEREST',
+      'BUY',
+      'BUY',
+      'SELL',
+      'BUY'
+    ]);
+    expect(activities[0]).toMatchObject({
+      symbol: 'VOO',
+      currency: 'USD',
+      quantity: 1,
+      unitPrice: 7.22
+    });
+    expect(activities[1]).toMatchObject({
+      type: 'INTEREST',
+      currency: 'USD',
+      quantity: 1,
+      unitPrice: 0.12,
+      dataSource: 'MANUAL'
+    });
+    expect(activities[2]).toMatchObject({
+      accountId: 'account',
+      quantity: 3,
+      unitPrice: 630.4,
+      fee: expect.closeTo(0.3),
+      updateAccountBalance: false
+    });
+    expect(activities[3]).toMatchObject({ quantity: 0.854 });
+    expect(activities[4]).toMatchObject({
+      symbol: 'JNJ',
+      quantity: 10,
+      unitPrice: 243,
+      type: 'SELL'
+    });
+    expect(activities[5]).toMatchObject({
+      symbol: 'JNJ',
+      quantity: 10,
+      unitPrice: 0,
+      tags: [TAG_ID_DRAFT, 'existing-rsu-tag']
+    });
+    expect(activities[5].date).toContain('2026-03-02');
+    expect(result.tags).toEqual([]);
+    expect(result.sourceRows[5]).toMatchObject({
+      Action: 'YOU BOUGHT RSU#### EXAMPLE (JNJ) (Cash)'
+    });
+    expect(result.skippedRowsData).toEqual([
+      expect.objectContaining({
+        Action: 'REINVESTMENT CASH (315994103) (Cash)',
+        'Import issue': 'Unsupported transaction type'
+      })
+    ]);
+  });
+
+  it('creates an RSU tag for preview and retains it when the RSU symbol is unresolved', async () => {
+    const importJson = jest
+      .spyOn(service, 'importJson')
+      .mockRejectedValueOnce({
+        error: { message: ['activities.0.symbol ("JNJ") cannot be resolved'] }
+      })
+      .mockImplementationOnce(async ({ activities }) => ({
+        activities: activities.map((_, index) => ({
+          id: `${index}`,
+          importIndex: index
+        })) as Activity[]
+      }));
+    const row =
+      '03/02/2026,YOU BOUGHT RSU123 EXAMPLE,JNJ,Example,Cash,,10,,,,0,0,\n';
+
+    const result = await service.importFidelityCsv({
+      fileContent: fidelityHeader + row,
+      isDryRun: true,
+      selectedAccountId: 'account',
+      userAccounts: [],
+      userTags: []
+    });
+
+    expect(result.tags).toEqual([
+      { id: '1ad7d4a2-6b2d-4e0f-9b1f-2c0f8d3e5a7b', name: 'Vested RSUs' }
+    ]);
+    expect(importJson.mock.calls[1][0].activities[0]).toMatchObject({
+      dataSource: 'MANUAL',
+      tags: [TAG_ID_DRAFT, result.tags[0].id]
+    });
+    expect(result.sourceRows[result.activities[0].importIndex!]).toMatchObject({
+      Symbol: 'JNJ'
+    });
+  });
+
+  it('rejects invalid Fidelity headers and reports unsupported or invalid transactions', async () => {
+    await expect(
+      service.importFidelityCsv({
+        fileContent: 'Date,Symbol\n2026-01-01,VOO',
+        selectedAccountId: 'account',
+        userAccounts: [],
+        userTags: []
+      })
+    ).rejects.toThrow('required Fidelity headers');
+
+    const result = await service.importFidelityCsv({
+      fileContent:
+        fidelityHeader +
+        '02/30/2026,YOU BOUGHT EXAMPLE,VOO,Example,Cash,2,1,,,,2,0,\n' +
+        '03/02/2026,YOU BOUGHT EXAMPLE,VOO,Example,Cash,,1,,,,2,0,\n' +
+        '03/02/2026,TRANSFER,VOO,Example,Cash,,1,,,,2,0,\n',
+      selectedAccountId: 'account',
+      userAccounts: [],
+      userTags: []
+    });
+
+    expect(result.activities).toEqual([]);
+    expect(result.skippedRowsData.map((row) => row['Import issue'])).toEqual([
+      'Missing or invalid date',
+      'Missing or invalid symbol, quantity, price, amount, or fees',
+      'Unsupported transaction type'
+    ]);
+  });
+
+  it('retains the source row of a sorted duplicate and uses the settlement date when needed', async () => {
+    const importJson = jest
+      .spyOn(service, 'importJson')
+      .mockImplementation(async ({ activities }) => ({
+        activities: activities
+          .map((_, index) => ({
+            id: `${index}`,
+            importIndex: index,
+            ...(index === 0 ? { error: { code: 'IS_DUPLICATE' } } : {})
+          }))
+          .reverse() as Activity[]
+      }));
+
+    const result = await service.importFidelityCsv({
+      fileContent:
+        fidelityHeader +
+        ',YOU BOUGHT EXAMPLE,VOO,"Example, Inc",Cash,2,1,,,,2,0,03/09/2026\n' +
+        '03/10/2026,YOU SOLD EXAMPLE,JNJ,Example,Cash,4,-1,,,,4,0,\n',
+      isDryRun: true,
+      selectedAccountId: 'account',
+      userAccounts: [],
+      userTags: []
+    });
+
+    expect(importJson.mock.calls[0][0].activities[0].date).toContain(
+      '2026-03-09'
+    );
+    const duplicate = result.activities.find(
+      ({ error }) => error?.code === 'IS_DUPLICATE'
+    )!;
+    expect(result.sourceRows[duplicate.importIndex!]).toMatchObject({
+      Symbol: 'VOO',
+      Description: 'Example, Inc'
+    });
   });
 
   it('retains the original CSV rows when the preview is sorted', async () => {

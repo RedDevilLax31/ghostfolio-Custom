@@ -4,6 +4,7 @@
 
 - [x] Differentiate development and production instances
 - [ ] fix side to side scrolling because of long names in tables
+- [ ] Inlaw mode - hide numbers and show percentages only
 
 ## Bugfixes
 
@@ -24,7 +25,9 @@
   - [x] added xlsx as file type
   - [x] fix dividend handling process
   - [x] import specific processes based on platform of the account
-- [ ] Correct Fidelity import process
+- [x] Correct Fidelity import process
+  - Fidelity brokerage CSVs are imported locally in USD for Fidelity accounts. Unsupported transactions and cash reinvestments are available in the skipped-rows download; cash balances are not updated.
+  - Vested RSU acquisitions are imported as drafts tagged `Vested RSUs`. Enter the vest-date cost basis from the vesting records and remove `DRAFT` after correcting the activity. Drafts are excluded from portfolio calculations until corrected.
 - [ ] Correct 401k import process (needs to split roth and trad transactions)
 - [x] Prevent duplicate records from loading
   - Duplicate imports are checked by account, timestamp, type, asset, quantity, price, currency, and fees. Skipped rows can be downloaded from the import preview.

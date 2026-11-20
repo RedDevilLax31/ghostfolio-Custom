@@ -219,6 +219,7 @@ export class GfImportActivitiesDialogComponent {
   private assetProfiles: CreateAssetProfileWithMarketDataDto[] = [];
   private hasChangedUserSettings = false;
   private hasImportedActivities = false;
+  private isFidelityCsvImport = false;
   private platforms: CreatePlatformDto[] = [];
   private skippedRowsData: Record<string, unknown>[] = [];
   private sourceRowsByActivityId = new Map<string, Record<string, unknown>[]>();
@@ -250,6 +251,15 @@ export class GfImportActivitiesDialogComponent {
 
   protected get selectedAccountId() {
     return this.accountForm.controls.accountId.value ?? undefined;
+  }
+
+  protected get isFidelityAccount() {
+    return (
+      this.data.user.accounts
+        .find(({ id }) => id === this.selectedAccountId)
+        ?.platform?.name?.trim()
+        .toLowerCase() === 'fidelity'
+    );
   }
 
   public ngOnInit() {
@@ -321,7 +331,13 @@ export class GfImportActivitiesDialogComponent {
           assetProfiles: this.assetProfiles,
           platforms: this.platforms,
           selectedAccountId: this.selectedAccountId,
-          tags: this.tags
+          tags: this.isFidelityCsvImport
+            ? this.tags.filter(({ id }) =>
+                this.selectedActivities.some((activity) =>
+                  activity.tags?.some((tag) => tag.id === id)
+                )
+              )
+            : this.tags
         });
 
       this.hasImportedActivities ||= activities.length > 0;
@@ -380,10 +396,23 @@ export class GfImportActivitiesDialogComponent {
       this.dialogRef.close({ withRefresh: true });
     } catch (error) {
       console.error(error);
+      const response: unknown =
+        error instanceof HttpErrorResponse ? error.error : undefined;
+      const responseMessage =
+        response && typeof response === 'object' && 'message' in response
+          ? response.message
+          : undefined;
+      const message = Array.isArray(responseMessage)
+        ? responseMessage
+            .filter((value): value is string => typeof value === 'string')
+            .join(' ')
+        : responseMessage;
       this.snackBar.open(
-        $localize`Oops! Something went wrong.` +
-          ' ' +
-          $localize`Please try again later.`,
+        typeof message === 'string' && message.trim()
+          ? message
+          : $localize`Oops! Something went wrong.` +
+              ' ' +
+              $localize`Please try again later.`,
         $localize`Okay`,
         {
           duration: ms('3 seconds')
@@ -475,6 +504,7 @@ export class GfImportActivitiesDialogComponent {
     this.details = [];
     this.duplicateRows = 0;
     this.importedCount = 0;
+    this.isFidelityCsvImport = false;
     this.errorMessages = [];
     this.importStep = ImportStep.SELECT_ACTIVITIES;
     this.isMaxActivitiesOfGhostfolioAiReached = false;
@@ -562,6 +592,53 @@ export class GfImportActivitiesDialogComponent {
     this.skippedRowsFileContent = undefined;
     this.skippedRowsData = [];
     this.sourceRowsByActivityId.clear();
+    this.isFidelityCsvImport = false;
+
+    const selectedAccountId = this.selectedAccountId;
+    if (
+      fileExtension === 'csv' &&
+      this.isFidelityAccount &&
+      selectedAccountId
+    ) {
+      this.isFidelityCsvImport = true;
+      this.snackBar.open('⏳ ' + $localize`Validating data...`);
+
+      try {
+        const {
+          activities,
+          assetProfiles,
+          skippedRows,
+          skippedRowsData,
+          sourceRows,
+          tags
+        } = await this.importActivitiesService.importFidelityCsv({
+          fileContent: await file.text(),
+          isDryRun: true,
+          selectedAccountId,
+          userAccounts: this.data.user.accounts,
+          userTags: this.data.user.tags ?? []
+        });
+
+        this.setImportPreview({ activities, skippedRowsData, sourceRows });
+        this.assetProfiles = assetProfiles;
+        this.tags = tags;
+        this.skippedRows = skippedRows;
+        this.dataSource = new MatTableDataSource(activities.reverse());
+        this.pageIndex = 0;
+        this.totalItems = activities.length;
+      } catch (error) {
+        console.error(error);
+        this.handleImportError({
+          activities: [],
+          error
+        });
+      } finally {
+        this.snackBar.dismiss();
+        this.showSelectActivitiesStep(stepper);
+      }
+
+      return;
+    }
 
     if (fileExtension === 'xlsx') {
       this.snackBar.open('⏳ ' + $localize`Validating data...`);

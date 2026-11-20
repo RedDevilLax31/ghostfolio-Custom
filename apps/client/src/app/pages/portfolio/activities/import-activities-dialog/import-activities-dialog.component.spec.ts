@@ -24,6 +24,7 @@ describe('GfImportActivitiesDialogComponent', () => {
   let component: GfImportActivitiesDialogComponent;
   const importSelectedActivities = jest.fn();
   const importXlsx = jest.fn();
+  const importFidelityCsv = jest.fn();
   const getSkippedRowsCsv = jest.fn((rows: Record<string, unknown>[]) =>
     JSON.stringify(rows)
   );
@@ -38,7 +39,15 @@ describe('GfImportActivitiesDialogComponent', () => {
           provide: MAT_DIALOG_DATA,
           useValue: {
             deviceType: 'desktop',
-            user: { accounts: [], permissions: [], settings: {} }
+            user: {
+              accounts: [
+                { id: 'fidelity', platform: { name: 'Fidelity' } },
+                { id: 'vanguard', platform: { name: 'Vanguard' } }
+              ],
+              permissions: [],
+              settings: {},
+              tags: []
+            }
           }
         },
         { provide: MatDialogRef, useValue: { close } },
@@ -48,7 +57,12 @@ describe('GfImportActivitiesDialogComponent', () => {
         },
         {
           provide: ImportActivitiesService,
-          useValue: { getSkippedRowsCsv, importSelectedActivities, importXlsx }
+          useValue: {
+            getSkippedRowsCsv,
+            importFidelityCsv,
+            importSelectedActivities,
+            importXlsx
+          }
         },
         { provide: DataService, useValue: {} },
         { provide: UserService, useValue: {} }
@@ -170,6 +184,74 @@ describe('GfImportActivitiesDialogComponent', () => {
     }
   });
 
+  it.each([false, true])(
+    'routes Fidelity CSVs locally with AI enabled: %s',
+    async (aiEnabled) => {
+      component['accountForm'].controls.accountId.setValue('fidelity');
+      component['isGhostfolioAiEnabled'] = aiEnabled;
+      const ai = jest.fn();
+      component['handleFileWithGhostfolioAi'] = ai;
+      const activity = {
+        id: 'rsu',
+        importIndex: 0,
+        tags: [{ id: 'rsu-tag', name: 'Vested RSUs' }]
+      } as Activity;
+      importFidelityCsv.mockResolvedValueOnce({
+        activities: [activity],
+        assetProfiles: [],
+        sourceRows: [{ Action: 'YOU BOUGHT RSU123' }],
+        skippedRows: 1,
+        skippedRowsData: [
+          { Action: 'REINVESTMENT', 'Import issue': 'Unsupported' }
+        ],
+        tags: [{ id: 'rsu-tag', name: 'Vested RSUs' }]
+      });
+
+      await component['handleFile']({
+        file: {
+          name: 'fidelity.csv',
+          text: async () => 'fidelity csv'
+        } as File,
+        stepper: { next: jest.fn() } as unknown as MatStepper
+      });
+
+      expect(importFidelityCsv).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileContent: 'fidelity csv',
+          selectedAccountId: 'fidelity',
+          isDryRun: true
+        })
+      );
+      expect(ai).not.toHaveBeenCalled();
+      expect(component['selectedActivities']).toEqual([activity]);
+      expect(component['skippedRows']).toBe(1);
+      importSelectedActivities.mockResolvedValueOnce({
+        activities: [activity],
+        skippedActivities: []
+      });
+      await component['onImportActivities']();
+      expect(importSelectedActivities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: [{ id: 'rsu-tag', name: 'Vested RSUs' }]
+        })
+      );
+    }
+  );
+
+  it('keeps the existing AI route for other accounts', async () => {
+    component['accountForm'].controls.accountId.setValue('vanguard');
+    component['isGhostfolioAiEnabled'] = true;
+    const ai = jest.fn();
+    component['handleFileWithGhostfolioAi'] = ai;
+
+    await component['handleFile']({
+      file: { name: 'other.csv' } as File,
+      stepper: { next: jest.fn() } as unknown as MatStepper
+    });
+
+    expect(ai).toHaveBeenCalled();
+    expect(importFidelityCsv).not.toHaveBeenCalled();
+  });
   it('shows and selects new spreadsheet activities while excluding duplicates', async () => {
     const newActivity = { id: 'new', importIndex: 0 } as Activity;
     const duplicate = {
@@ -195,6 +277,33 @@ describe('GfImportActivitiesDialogComponent', () => {
     expect(component['selectedActivities']).toEqual([newActivity]);
     expect(component['duplicateRows']).toBe(1);
     expect(next).toHaveBeenCalled();
+  });
+
+  it('does not create an RSU tag when no RSU draft is selected', async () => {
+    component['accountForm'].controls.accountId.setValue('fidelity');
+    const activity = { id: 'buy', importIndex: 0 } as Activity;
+    importFidelityCsv.mockResolvedValueOnce({
+      activities: [activity],
+      assetProfiles: [],
+      sourceRows: [{ Action: 'YOU BOUGHT' }],
+      skippedRows: 0,
+      skippedRowsData: [],
+      tags: [{ id: 'rsu-tag', name: 'Vested RSUs' }]
+    });
+    await component['handleFile']({
+      file: { name: 'fidelity.csv', text: async () => '' } as File,
+      stepper: { next: jest.fn() } as unknown as MatStepper
+    });
+    importSelectedActivities.mockResolvedValueOnce({
+      activities: [activity],
+      skippedActivities: []
+    });
+
+    await component['onImportActivities']();
+
+    expect(importSelectedActivities).toHaveBeenCalledWith(
+      expect.objectContaining({ tags: [] })
+    );
   });
 
   it('retains server validation messages and their activity details', () => {

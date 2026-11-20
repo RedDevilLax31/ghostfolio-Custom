@@ -11,6 +11,7 @@ import {
 } from '@ghostfolio/common/dtos';
 import {
   isValidCustomAssetProfileSymbol,
+  isValidDateAfter1970,
   parseDate as parseDateHelper
 } from '@ghostfolio/common/helper';
 import { Activity, ImportResponse } from '@ghostfolio/common/interfaces';
@@ -19,11 +20,22 @@ import { DataSource, Type as ActivityType } from '@ghostfolio/prisma/enums';
 
 import { HttpClient } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
+import Big from 'big.js';
 import { isFinite, isNumber, isString } from 'lodash-es';
 import { parse as csvToJson } from 'papaparse';
 import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
+
+interface SpreadsheetImportRow {
+  Currency: string;
+  Date: string;
+  Fee: number;
+  Quantity: number;
+  Symbol: unknown;
+  Type: unknown;
+  UnitPrice: number;
+}
 
 @Service()
 export class ImportActivitiesService {
@@ -78,6 +90,7 @@ export class ImportActivitiesService {
 
   public async importCsv({
     activityTagIds,
+    activityTagIdsByRow,
     fileContent,
     isDryRun = false,
     selectedAccountId,
@@ -85,6 +98,7 @@ export class ImportActivitiesService {
     userAccounts
   }: {
     activityTagIds?: string[];
+    activityTagIdsByRow?: string[][];
     fileContent: string;
     isDryRun?: boolean;
     selectedAccountId?: string;
@@ -171,7 +185,14 @@ export class ImportActivitiesService {
         date: this.parseDate({ content, index, item }),
         fee: this.parseFee({ content, index, item }),
         quantity: this.parseQuantity({ content, index, item }),
-        tags: activityTagIds,
+        tags: activityTagIdsByRow
+          ? [
+              ...new Set([
+                ...(activityTagIds ?? []),
+                ...(activityTagIdsByRow[index] ?? [])
+              ])
+            ]
+          : activityTagIds,
         unitPrice: this.parseUnitPrice({ content, index, item }),
         updateAccountBalance: false
       });
@@ -359,20 +380,277 @@ export class ImportActivitiesService {
       ];
     });
 
+    const result = await this.importSpreadsheetRows({
+      isDryRun,
+      selectedAccountId,
+      supportedRows,
+      userAccounts
+    });
+
+    if (!result) {
+      throw new Error('The workbook does not contain importable activities');
+    }
+
+    const skippedRows = skippedRowsData.length;
+
+    return {
+      ...result,
+      relatedSourceRows,
+      sourceRows,
+      skippedRowsData,
+      skippedRows,
+      skippedRowsFileContent: skippedRows
+        ? XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(skippedRowsData), {
+            blankrows: false
+          })
+        : undefined
+    };
+  }
+
+  public async importFidelityCsv({
+    fileContent,
+    isDryRun = false,
+    selectedAccountId,
+    userAccounts,
+    userTags
+  }: {
+    fileContent: string;
+    isDryRun?: boolean;
+    selectedAccountId: string;
+    userAccounts: Account[];
+    userTags: { id: string; name: string }[];
+  }) {
+    const parsed = csvToJson<Record<string, string>>(fileContent, {
+      header: true,
+      skipEmptyLines: 'greedy'
+    });
+    const headers = new Map(
+      (parsed.meta.fields ?? []).map((header) => [
+        this.normalizeSpreadsheetHeader(header),
+        header
+      ])
+    );
+    const requiredHeaders = [
+      'rundate',
+      'action',
+      'symbol',
+      'price',
+      'quantity',
+      'commission',
+      'fees',
+      'amount',
+      'settlementdate'
+    ];
+
+    if (requiredHeaders.some((header) => !headers.has(header))) {
+      throw new Error('The CSV does not contain the required Fidelity headers');
+    }
+
+    if (parsed.errors.some(({ type }) => type !== 'FieldMismatch')) {
+      throw new Error('The Fidelity CSV could not be parsed');
+    }
+
+    const value = (row: Record<string, string>, header: string) => {
+      const actualHeader = headers.get(header);
+      if (!actualHeader) {
+        throw new Error(
+          'The CSV does not contain the required Fidelity headers'
+        );
+      }
+      return (row[actualHeader] ?? '').trim();
+    };
+    const supportedRows: SpreadsheetImportRow[] = [];
+    const sourceRows: Record<string, unknown>[] = [];
+    const skippedRowsData: Record<string, unknown>[] = [];
+    const rsuRows: SpreadsheetImportRow[] = [];
+
+    for (const row of parsed.data) {
+      const runDate = value(row, 'rundate');
+      if (
+        runDate
+          .toLowerCase()
+          .startsWith('the data and information in this spreadsheet')
+      ) {
+        break;
+      }
+
+      const action = value(row, 'action').toUpperCase();
+      const isRsu = /^YOU BOUGHT RSU[A-Z0-9#-]*(?:\s|$)/.test(action);
+      let type: ActivityType;
+      if (/^YOU BOUGHT\b/.test(action)) {
+        type = 'BUY';
+      } else if (/^YOU SOLD\b/.test(action)) {
+        type = 'SELL';
+      } else if (/^DIVIDEND RECEIVED\b/.test(action)) {
+        type = 'DIVIDEND';
+      } else if (/^INTEREST EARNED\b/.test(action)) {
+        type = 'INTEREST';
+      } else {
+        skippedRowsData.push({
+          ...row,
+          'Import issue': 'Unsupported transaction type'
+        });
+        continue;
+      }
+
+      const date = this.parseFidelityDate(
+        runDate || value(row, 'settlementdate')
+      );
+      const symbol = type === 'INTEREST' ? 'CASH' : value(row, 'symbol');
+      const quantity =
+        type === 'DIVIDEND' || type === 'INTEREST'
+          ? 1
+          : this.parseFidelityNumber(value(row, 'quantity'));
+      const price = this.parseFidelityNumber(value(row, 'price'));
+      const amount = this.parseFidelityNumber(value(row, 'amount'));
+      const commissionText = value(row, 'commission');
+      const feesText = value(row, 'fees');
+      const commission = commissionText
+        ? this.parseFidelityNumber(commissionText)
+        : 0;
+      const fees = feesText ? this.parseFidelityNumber(feesText) : 0;
+      const unitPrice =
+        type === 'DIVIDEND' || type === 'INTEREST'
+          ? amount
+          : isRsu && price === undefined
+            ? 0
+            : price;
+
+      if (!date) {
+        skippedRowsData.push({
+          ...row,
+          'Import issue': 'Missing or invalid date'
+        });
+        continue;
+      }
+      if (
+        !symbol ||
+        !quantity ||
+        unitPrice === undefined ||
+        (!isRsu && unitPrice === 0) ||
+        commission === undefined ||
+        fees === undefined ||
+        (value(row, 'price') && price === undefined) ||
+        (value(row, 'amount') && amount === undefined) ||
+        requiredHeaders.some((header) => {
+          const actualHeader = headers.get(header);
+          return !actualHeader || !(actualHeader in row);
+        }) ||
+        '__parsed_extra' in row
+      ) {
+        skippedRowsData.push({
+          ...row,
+          'Import issue':
+            'Missing or invalid symbol, quantity, price, amount, or fees'
+        });
+        continue;
+      }
+
+      const preparedRow: SpreadsheetImportRow = {
+        Currency: 'USD',
+        Date: date,
+        Fee: new Big(commission).plus(fees).toNumber(),
+        Quantity: quantity,
+        Symbol: symbol,
+        Type: type,
+        UnitPrice: unitPrice
+      };
+      sourceRows.push(row);
+      supportedRows.push(preparedRow);
+      if (isRsu) {
+        rsuRows.push(preparedRow);
+      }
+    }
+
+    const existingRsuTag = userTags.find(
+      ({ name }) => name.trim().toLowerCase() === 'vested rsus'
+    );
+    const rsuTag =
+      rsuRows.length > 0
+        ? (existingRsuTag ?? { id: uuidv4(), name: 'Vested RSUs' })
+        : undefined;
+    const tags = rsuTag && !existingRsuTag ? [rsuTag] : [];
+    const rowTagIds = new Map<SpreadsheetImportRow, string[]>();
+    if (rsuTag) {
+      for (const row of rsuRows) {
+        rowTagIds.set(row, [TAG_ID_DRAFT, rsuTag.id]);
+      }
+    }
+    const result = await this.importSpreadsheetRows({
+      isDryRun,
+      rowTagIds,
+      selectedAccountId,
+      supportedRows,
+      tags,
+      userAccounts
+    });
+
+    return {
+      activities: result?.activities ?? [],
+      assetProfiles: result?.assetProfiles ?? [],
+      sourceRows,
+      skippedRows: skippedRowsData.length,
+      skippedRowsData,
+      tags
+    };
+  }
+
+  private parseFidelityDate(value: string) {
+    const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value);
+    if (!match) {
+      return undefined;
+    }
+    const [, month, day, year] = match;
+    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const date = new Date(`${isoDate}T00:00:00Z`);
+    return Number.isFinite(date.getTime()) &&
+      date.toISOString().startsWith(isoDate) &&
+      isValidDateAfter1970(isoDate)
+      ? isoDate
+      : undefined;
+  }
+
+  private parseFidelityNumber(value: string) {
+    if (!value || !/^-?\$?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?$/.test(value)) {
+      return undefined;
+    }
+    const number = Number(value.replace(/[$,]/g, ''));
+    return Number.isFinite(number) ? Math.abs(number) : undefined;
+  }
+
+  private async importSpreadsheetRows({
+    isDryRun,
+    rowTagIds = new Map(),
+    selectedAccountId,
+    supportedRows,
+    tags = [],
+    userAccounts
+  }: {
+    isDryRun: boolean;
+    rowTagIds?: Map<SpreadsheetImportRow, string[]>;
+    selectedAccountId: string;
+    supportedRows: SpreadsheetImportRow[];
+    tags?: CreateTagDto[];
+    userAccounts: Account[];
+  }) {
     let rowsToImport = supportedRows;
-    const draftRows: typeof supportedRows = [];
+    const draftRows: SpreadsheetImportRow[] = [];
     let result:
       Awaited<ReturnType<ImportActivitiesService['importCsv']>> | undefined;
 
     while (rowsToImport.length > 0) {
       try {
         result = await this.importCsv({
+          activityTagIdsByRow: rowsToImport.map(
+            (row) => rowTagIds.get(row) ?? []
+          ),
           fileContent: XLSX.utils.sheet_to_csv(
             XLSX.utils.json_to_sheet(rowsToImport),
             { blankrows: false }
           ),
           isDryRun,
           selectedAccountId,
+          tags,
           userAccounts
         });
         result.activities = result.activities.map((activity) => {
@@ -416,6 +694,7 @@ export class ImportActivitiesService {
     if (draftRows.length > 0) {
       const draftResult = await this.importCsv({
         activityTagIds: [TAG_ID_DRAFT],
+        activityTagIdsByRow: draftRows.map((row) => rowTagIds.get(row) ?? []),
         fileContent: XLSX.utils.sheet_to_csv(
           XLSX.utils.json_to_sheet(
             draftRows.map((row) => ({
@@ -427,7 +706,7 @@ export class ImportActivitiesService {
         ),
         isDryRun,
         selectedAccountId,
-        tags: [{ id: TAG_ID_DRAFT, name: 'DRAFT' }],
+        tags: [...tags, { id: TAG_ID_DRAFT, name: 'DRAFT' }],
         userAccounts
       });
       draftResult.activities = draftResult.activities.map((activity) => {
@@ -450,29 +729,12 @@ export class ImportActivitiesService {
               ...result.assetProfiles,
               ...draftResult.assetProfiles
             ],
-            sourceRows
+            sourceRows: []
           }
         : draftResult;
     }
 
-    if (!result) {
-      throw new Error('The workbook does not contain importable activities');
-    }
-
-    const skippedRows = skippedRowsData.length;
-
-    return {
-      ...result,
-      relatedSourceRows,
-      sourceRows,
-      skippedRowsData,
-      skippedRows,
-      skippedRowsFileContent: skippedRows
-        ? XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(skippedRowsData), {
-            blankrows: false
-          })
-        : undefined
-    };
+    return result;
   }
 
   private formatSpreadsheetDate({

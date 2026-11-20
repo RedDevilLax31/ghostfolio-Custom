@@ -94,6 +94,14 @@
               [loadingText]="ghostfolioAiLoadingText"
               (fileSelected)="onFileSelected({ stepper, file: $event })"
             />
+            @if (isFidelityAccount) {
+              <p class="mt-3 text-body-secondary" i18n>
+                Fidelity CSV imports create vested RSUs as drafts. Enter their
+                vest-date cost basis from your records and remove the DRAFT tag
+                after correcting them. Drafts are excluded from portfolio
+                calculations until corrected.
+              </p>
+            }
             @if (
               data.deviceType !== 'mobile' &&
               (hasPermissionToEnableGhostfolioAi ||

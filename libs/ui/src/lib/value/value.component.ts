@@ -10,6 +10,7 @@ import {
   computed,
   CUSTOM_ELEMENTS_SCHEMA,
   ElementRef,
+  inject,
   input,
   Input,
   OnChanges,
@@ -24,6 +25,8 @@ import { checkmarkOutline, copyOutline } from 'ionicons/icons';
 import { isNumber } from 'lodash-es';
 import ms from 'ms';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+
+import { PresentationModeService } from '../services/presentation-mode.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,6 +67,7 @@ export class GfValueComponent implements AfterViewInit, OnChanges, OnDestroy {
   public readonly copyToClipboardTitle = $localize`Copy to clipboard`;
   public readonly isLoading = input<boolean>(false);
   public readonly precision = input<number>();
+  protected readonly presentationMode = inject(PresentationModeService);
 
   public constructor(
     private changeDetectorRef: ChangeDetectorRef,
@@ -187,6 +191,10 @@ export class GfValueComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   public onCopyValueToClipboard() {
+    if (this.isCurrency && !this.presentationMode.confirmDisclosure()) {
+      return;
+    }
+
     this.clipboard.copy(String(this.value));
 
     this.isCopied = true;
@@ -202,7 +210,9 @@ export class GfValueComponent implements AfterViewInit, OnChanges, OnDestroy {
     }, ms('3 seconds'));
 
     this.snackBar.open(
-      '✅ ' + $localize`${this.value} has been copied to the clipboard`,
+      this.isCurrency && this.presentationMode.isEnabled()
+        ? '✅ ' + $localize`The value has been copied to the clipboard`
+        : '✅ ' + $localize`${this.value} has been copied to the clipboard`,
       undefined,
       {
         duration: ms('3 seconds')

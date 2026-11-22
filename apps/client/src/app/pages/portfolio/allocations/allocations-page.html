@@ -203,7 +203,9 @@
             <gf-world-map-chart
               [countries]="countries"
               [format]="worldMapChartFormat"
-              [isInPercentage]="showValuesInPercentage()"
+              [isInPercentage]="
+                showValuesInPercentage() || presentationMode.isEnabled()
+              "
               [locale]="user?.settings?.locale"
             />
           </div>

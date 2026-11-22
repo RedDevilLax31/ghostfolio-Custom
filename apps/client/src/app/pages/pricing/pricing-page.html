@@ -172,7 +172,9 @@
               @if (price) {
                 <p class="h5 text-end">
                   <span class="fw-normal">
-                    @if (coupon) {
+                    @if (presentationMode.isEnabled()) {
+                      *****
+                    } @else if (coupon) {
                       <del class="text-body-secondary"
                         >{{ baseCurrency }}&nbsp;{{ price }}</del
                       >&nbsp;{{ baseCurrency }}&nbsp;<strong>{{
@@ -252,7 +254,9 @@
                 </div>
                 <p class="h5 text-end">
                   <span class="fw-normal">
-                    {{ baseCurrency }}&nbsp;<strong>{{ priceMax }}</strong>
+                    {{ baseCurrency }}&nbsp;<strong>{{
+                      presentationMode.isEnabled() ? '*****' : priceMax
+                    }}</strong>
                     <span>&nbsp;</span>
                     <span i18n>per year</span></span
                   >

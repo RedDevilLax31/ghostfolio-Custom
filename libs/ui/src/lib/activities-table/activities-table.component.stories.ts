@@ -439,6 +439,13 @@ export const Default: Story = {
   }
 };
 
+export const Selection: Story = {
+  args: {
+    ...Default.args,
+    showCheckbox: true
+  }
+};
+
 export const Pagination: Story = {
   args: {
     baseCurrency: 'USD',
@@ -503,6 +510,7 @@ export const Toolbar: Story = {
     hasPermissionToCreateActivity: true,
     hasPermissionToDeleteActivity: true,
     hasPermissionToExportActivities: true,
+    hasPermissionToFilterDrafts: true,
     hasPermissionToFilterByType: true,
     hasPermissionToOpenDetails: false,
     locale: 'en-US',

@@ -27,7 +27,9 @@
               </button>
               @if (price) {
                 <div class="mt-1 text-center">
-                  @if (coupon) {
+                  @if (presentationMode.isEnabled()) {
+                    *****
+                  } @else if (coupon) {
                     <del class="text-body-secondary"
                       >{{ baseCurrency }}&nbsp;{{ price }}</del
                     >&nbsp;{{ baseCurrency }}&nbsp;{{ price - coupon }}

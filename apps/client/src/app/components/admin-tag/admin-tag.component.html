@@ -9,9 +9,9 @@
     Add Tag
   </a>
 </div>
-<div class="overflow-x-auto">
+<div class="gf-table-container overflow-x-auto">
   <table
-    class="gf-table w-100"
+    class="gf-table gf-table-responsive w-100"
     mat-table
     matSort
     matSortActive="name"
@@ -22,7 +22,13 @@
       <th *matHeaderCellDef class="px-1" mat-header-cell mat-sort-header="name">
         <ng-container i18n>Name</ng-container>
       </th>
-      <td *matCellDef="let element" class="px-1 text-nowrap" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-nowrap"
+        data-label="Name"
+        i18n-data-label
+        mat-cell
+      >
         {{ translate(element.name) }}
       </td>
     </ng-container>
@@ -36,7 +42,13 @@
       >
         <ng-container i18n>User</ng-container>
       </th>
-      <td *matCellDef="let element" class="px-1 text-nowrap" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-nowrap"
+        data-label="User"
+        i18n-data-label
+        mat-cell
+      >
         <span class="font-monospace">{{ element.userId }}</span>
       </td>
     </ng-container>
@@ -50,7 +62,13 @@
       >
         <ng-container i18n>Accounts</ng-container>
       </th>
-      <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-end"
+        data-label="Accounts"
+        i18n-data-label
+        mat-cell
+      >
         <gf-value
           class="d-inline-block justify-content-end"
           [locale]="locale()"
@@ -68,7 +86,13 @@
       >
         <ng-container i18n>Activities</ng-container>
       </th>
-      <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-end"
+        data-label="Activities"
+        i18n-data-label
+        mat-cell
+      >
         <gf-value
           class="d-inline-block justify-content-end"
           [locale]="locale()"
@@ -86,7 +110,13 @@
       >
         <ng-container i18n>Total</ng-container>
       </th>
-      <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-end"
+        data-label="Total"
+        i18n-data-label
+        mat-cell
+      >
         <gf-value
           class="d-inline-block justify-content-end"
           [locale]="locale()"

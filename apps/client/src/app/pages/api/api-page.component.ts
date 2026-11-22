@@ -16,6 +16,7 @@ import {
 } from '@ghostfolio/common/interfaces';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { GfFearAndGreedIndexComponent } from '@ghostfolio/ui/fear-and-greed-index';
+import { PresentationModeService } from '@ghostfolio/ui/services';
 
 import { CommonModule } from '@angular/common';
 import {
@@ -55,6 +56,7 @@ import { FetchFailure, FetchResult } from './interfaces/interfaces';
   templateUrl: './api-page.html'
 })
 export class GfApiPageComponent implements OnInit {
+  protected readonly presentationMode = inject(PresentationModeService);
   protected aiServiceHealth$: Observable<FetchResult<AiServiceHealthResponse>>;
   protected assetProfile$: Observable<
     FetchResult<DataProviderGhostfolioAssetProfileResponse>

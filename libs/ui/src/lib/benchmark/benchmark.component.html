@@ -1,6 +1,6 @@
-<div class="overflow-x-auto">
+<div class="gf-table-container overflow-x-auto">
   <table
-    class="gf-table w-100"
+    class="gf-table gf-table-responsive w-100"
     mat-table
     matSort
     matSortActive="name"
@@ -22,15 +22,23 @@
       <th *matHeaderCellDef class="px-1" mat-header-cell mat-sort-header>
         <ng-container i18n>Name</ng-container>
       </th>
-      <td *matCellDef="let element" class="lh-normal px-1 text-nowrap" mat-cell>
-        <div class="text-truncate">
-          {{ element?.name }}
-        </div>
-        @if (showSymbol()) {
-          <div>
-            <small class="text-body-secondary">{{ element?.symbol }}</small>
+      <td
+        *matCellDef="let element"
+        class="lh-normal px-1 text-nowrap"
+        data-label="Name"
+        i18n-data-label
+        mat-cell
+      >
+        <div>
+          <div class="text-truncate">
+            {{ element?.name }}
           </div>
-        }
+          @if (showSymbol()) {
+            <div>
+              <small class="text-body-secondary">{{ element?.symbol }}</small>
+            </div>
+          }
+        </div>
       </td>
     </ng-container>
 
@@ -45,6 +53,8 @@
       <td
         *matCellDef="let element"
         class="d-none d-lg-table-cell px-1"
+        data-label="50-Day Trend"
+        i18n-data-label
         mat-cell
       >
         <div class="d-flex justify-content-end">
@@ -74,6 +84,8 @@
       <td
         *matCellDef="let element"
         class="d-none d-lg-table-cell px-1"
+        data-label="200-Day Trend"
+        i18n-data-label
         mat-cell
       >
         <div class="d-flex justify-content-end">
@@ -103,6 +115,8 @@
       <td
         *matCellDef="let element"
         class="d-none d-lg-table-cell px-1"
+        data-label="Last All Time High"
+        i18n-data-label
         mat-cell
       >
         <div class="d-flex justify-content-end">
@@ -129,7 +143,13 @@
         >
         <span class="d-block d-sm-none text-nowrap" i18n>from ATH</span>
       </th>
-      <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-end"
+        data-label="Change from All Time High"
+        i18n-data-label
+        mat-cell
+      >
         @if (isNumber(element?.performances?.allTimeHigh?.performancePercent)) {
           <gf-value
             class="d-inline-block justify-content-end"

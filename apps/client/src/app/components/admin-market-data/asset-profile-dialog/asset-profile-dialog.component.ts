@@ -48,7 +48,11 @@ import { translate } from '@ghostfolio/ui/i18n';
 import { GfLineChartComponent } from '@ghostfolio/ui/line-chart';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { GfPortfolioProportionChartComponent } from '@ghostfolio/ui/portfolio-proportion-chart';
-import { AdminService, DataService } from '@ghostfolio/ui/services';
+import {
+  AdminService,
+  DataService,
+  PresentationModeService
+} from '@ghostfolio/ui/services';
 import { GfSymbolAutocompleteComponent } from '@ghostfolio/ui/symbol-autocomplete';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
@@ -317,6 +321,7 @@ export class GfAssetProfileDialogComponent implements OnInit {
 
   public constructor(
     protected adminMarketDataService: AdminMarketDataService,
+    protected presentationMode: PresentationModeService,
     private adminService: AdminService,
     private changeDetectorRef: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) protected data: AssetProfileDialogParams,
@@ -855,7 +860,7 @@ export class GfAssetProfileDialogComponent implements OnInit {
         const currency = this.assetProfileForm.controls.currency.value;
 
         this.notificationService.alert({
-          title: `${$localize`The current market price is`} ${price}${
+          title: `${$localize`The current market price is`} ${this.presentationMode.isEnabled() ? '*****' : price}${
             currency ? ` ${currency}` : ''
           }`
         });

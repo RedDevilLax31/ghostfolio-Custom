@@ -1,6 +1,10 @@
-<form [formGroup]="accountBalanceForm" (ngSubmit)="onSubmitAccountBalance()">
+<form
+  class="gf-table-container"
+  [formGroup]="accountBalanceForm"
+  (ngSubmit)="onSubmitAccountBalance()"
+>
   <table
-    class="gf-table w-100"
+    class="gf-table gf-table-responsive w-100"
     mat-table
     matSort
     matSortActive="date"
@@ -11,10 +15,22 @@
       <th *matHeaderCellDef class="px-2" mat-header-cell mat-sort-header>
         <ng-container i18n>Date</ng-container>
       </th>
-      <td *matCellDef="let element" class="px-2" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-2"
+        data-label="Date"
+        i18n-data-label
+        mat-cell
+      >
         <gf-value [isDate]="true" [locale]="locale()" [value]="element?.date" />
       </td>
-      <td *matFooterCellDef class="px-2" mat-footer-cell>
+      <td
+        *matFooterCellDef
+        class="px-2"
+        data-label="Date"
+        i18n-data-label
+        mat-footer-cell
+      >
         <mat-form-field appearance="outline" class="py-1 without-hint">
           <input
             formControlName="date"
@@ -38,7 +54,13 @@
       <th *matHeaderCellDef class="px-2 text-end" mat-header-cell>
         <ng-container i18n>Value</ng-container>
       </th>
-      <td *matCellDef="let element" class="px-2" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-2"
+        data-label="Value"
+        i18n-data-label
+        mat-cell
+      >
         <div class="d-flex justify-content-end">
           <gf-value
             [isCurrency]="true"
@@ -48,7 +70,13 @@
           />
         </div>
       </td>
-      <td *matFooterCellDef class="px-2" mat-footer-cell>
+      <td
+        *matFooterCellDef
+        class="px-2"
+        data-label="Value"
+        i18n-data-label
+        mat-footer-cell
+      >
         <div class="d-flex justify-content-end">
           <mat-form-field appearance="outline" class="without-hint">
             <input formControlName="balance" matInput type="number" />
@@ -136,7 +164,7 @@
     <tr
       *matFooterRowDef="displayedColumns"
       mat-footer-row
-      [hidden]="!showActions()"
+      [hidden]="!showActions() || presentationMode.isEnabled()"
     ></tr>
   </table>
 </form>

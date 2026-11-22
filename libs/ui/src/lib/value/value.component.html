@@ -36,6 +36,21 @@
         width: '5rem'
       }"
     />
+  } @else if (isCurrency && presentationMode.isEnabled()) {
+    <div
+      class="align-items-center d-flex"
+      [class.justify-content-end]="position === 'end'"
+    >
+      <span
+        aria-label="Amount hidden"
+        class="font-monospace text-body-secondary"
+        i18n-aria-label
+        >*****</span
+      >
+      @if (!hasLabel) {
+        <ng-container *ngTemplateOutlet="copyIcon" />
+      }
+    </div>
   } @else if (value || value === 0 || value === null) {
     <div
       class="align-items-center d-flex"

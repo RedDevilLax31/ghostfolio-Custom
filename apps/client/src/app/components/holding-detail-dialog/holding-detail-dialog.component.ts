@@ -36,7 +36,7 @@ import { translate } from '@ghostfolio/ui/i18n';
 import { GfLineChartComponent } from '@ghostfolio/ui/line-chart';
 import { GfPortfolioProportionChartComponent } from '@ghostfolio/ui/portfolio-proportion-chart';
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 import { GfTagsSelectorComponent } from '@ghostfolio/ui/tags-selector';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
@@ -217,6 +217,7 @@ export class GfHoldingDetailDialogComponent implements OnInit {
     ImpersonationStorageService
   );
   private readonly router = inject(Router);
+  private readonly presentationMode = inject(PresentationModeService);
   private readonly userService = inject(UserService);
 
   public constructor() {
@@ -646,6 +647,10 @@ export class GfHoldingDetailDialogComponent implements OnInit {
   }
 
   protected onCloseHolding() {
+    if (!this.presentationMode.allowMonetaryEditing()) {
+      return;
+    }
+
     const today = new Date();
 
     const activity: CreateOrderDto = {
@@ -675,6 +680,11 @@ export class GfHoldingDetailDialogComponent implements OnInit {
   }
 
   protected onExport() {
+    const presentationModeWasEnabled = this.presentationMode.isEnabled();
+    if (!this.presentationMode.confirmDisclosure()) {
+      return;
+    }
+
     const activityIds = this.dataSource.data.map(({ id }) => {
       return id;
     });
@@ -683,6 +693,13 @@ export class GfHoldingDetailDialogComponent implements OnInit {
       .fetchExport({ activityIds })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((data) => {
+        if (
+          !presentationModeWasEnabled &&
+          !this.presentationMode.confirmDisclosure()
+        ) {
+          return;
+        }
+
         downloadAsFile({
           content: data,
           fileName: `ghostfolio-export-${this.assetProfile?.symbol}-${format(

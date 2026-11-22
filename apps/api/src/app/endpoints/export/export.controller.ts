@@ -40,6 +40,7 @@ export class ExportController {
       activityTypes,
       assetClasses,
       dataSource,
+      draftsOnly,
       range,
       symbol,
       tags
@@ -65,6 +66,7 @@ export class ExportController {
     return this.exportService.export({
       activityIds,
       activityTypes,
+      draftsOnly,
       endDate,
       filters,
       startDate,

@@ -25,6 +25,7 @@ export class ExportService {
   public async export({
     activityIds,
     activityTypes,
+    draftsOnly,
     endDate,
     filters,
     startDate,
@@ -33,6 +34,7 @@ export class ExportService {
   }: {
     activityIds?: string[];
     activityTypes?: ActivityType[];
+    draftsOnly?: boolean;
     endDate?: Date;
     filters?: Filter[];
     startDate?: Date;
@@ -45,6 +47,7 @@ export class ExportService {
     const platformsMap: { [platformId: string]: Platform } = {};
 
     let { activities } = await this.activitiesService.getActivities({
+      draftsOnly,
       endDate,
       filters,
       startDate,
@@ -76,6 +79,7 @@ export class ExportService {
     const isFilteredExport =
       activityIds?.length > 0 ||
       activityTypes?.length > 0 ||
+      !!draftsOnly ||
       filters?.length > 0 ||
       !!endDate ||
       !!startDate;

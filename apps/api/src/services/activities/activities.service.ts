@@ -406,12 +406,14 @@ export class ActivitiesService {
   }
 
   public async deleteActivities({
+    draftsOnly,
     endDate,
     filters,
     startDate,
     types,
     userId
   }: {
+    draftsOnly?: boolean;
     endDate?: Date;
     filters?: Filter[];
     startDate?: Date;
@@ -419,6 +421,7 @@ export class ActivitiesService {
     userId: string;
   }): Promise<number> {
     const where = this.getWhereClause({
+      draftsOnly,
       endDate,
       filters,
       startDate,
@@ -620,6 +623,7 @@ export class ActivitiesService {
   }
 
   public async getActivities({
+    draftsOnly,
     endDate,
     filters,
     includeDrafts = false,
@@ -633,6 +637,7 @@ export class ActivitiesService {
     userId,
     withExcludedAccountsAndActivities = false
   }: {
+    draftsOnly?: boolean;
     endDate?: Date;
     filters?: Filter[];
     includeDrafts?: boolean;
@@ -655,6 +660,7 @@ export class ActivitiesService {
     }
 
     const where = this.getWhereClause({
+      draftsOnly,
       endDate,
       filters,
       includeDrafts,
@@ -1048,6 +1054,7 @@ export class ActivitiesService {
   }
 
   private getWhereClause({
+    draftsOnly,
     endDate,
     filters,
     includeDrafts,
@@ -1056,6 +1063,7 @@ export class ActivitiesService {
     userId,
     withExcludedAccountsAndActivities
   }: {
+    draftsOnly?: boolean;
     endDate?: Date;
     filters?: Filter[];
     includeDrafts: boolean;
@@ -1066,6 +1074,10 @@ export class ActivitiesService {
   }): Prisma.OrderWhereInput {
     const andConditions: Prisma.OrderWhereInput[] = [];
     const where: Prisma.OrderWhereInput = { userId, AND: andConditions };
+
+    if (draftsOnly) {
+      andConditions.push({ tags: { some: { id: TAG_ID_DRAFT } } });
+    }
 
     if (endDate) {
       andConditions.push({ date: { lte: endDate } });
@@ -1102,7 +1114,7 @@ export class ActivitiesService {
       return id === TAG_ID_DRAFT;
     });
 
-    if (includeDrafts === false && !isFilteredByDraftTag) {
+    if (includeDrafts === false && !isFilteredByDraftTag && !draftsOnly) {
       andConditions.push(WHERE_ACTIVITY_NOT_DRAFT);
     }
 

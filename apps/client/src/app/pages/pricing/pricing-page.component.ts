@@ -6,7 +6,7 @@ import { publicRoutes } from '@ghostfolio/common/routes/routes';
 import { translate } from '@ghostfolio/ui/i18n';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 
 import {
   ChangeDetectionStrategy,
@@ -50,6 +50,7 @@ import { catchError } from 'rxjs/operators';
   templateUrl: './pricing-page.html'
 })
 export class GfPricingPageComponent implements OnInit {
+  protected readonly presentationMode = inject(PresentationModeService);
   protected baseCurrency: string;
   protected coupon: number | undefined;
   protected durationExtension: StringValue | undefined;

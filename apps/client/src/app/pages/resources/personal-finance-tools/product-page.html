@@ -51,7 +51,7 @@
           </p>
         </section>
         <section class="mb-4">
-          <table class="gf-table w-100">
+          <table class="gf-table gf-table-fit w-100">
             <caption class="text-center" i18n>
               Ghostfolio vs
               {{
@@ -349,13 +349,21 @@
               <tr class="mat-mdc-row">
                 <td class="mat-mdc-cell px-3 py-2 text-end" i18n>Pricing</td>
                 <td class="mat-mdc-cell px-1 py-2">
-                  <span i18n>Starting from</span> ${{ price() }} /
+                  <span i18n>Starting from</span> ${{
+                    presentationMode.isEnabled() ? '*****' : price()
+                  }}
+                  /
                   <span i18n>year</span>
                 </td>
                 <td class="mat-mdc-cell px-1 py-2">
                   @if (product2().pricingPerYear) {
                     <span i18n>Starting from</span>
-                    {{ product2().pricingPerYear }} /
+                    {{
+                      presentationMode.isEnabled()
+                        ? '*****'
+                        : product2().pricingPerYear
+                    }}
+                    /
                     <span i18n>year</span>
                   }
                 </td>

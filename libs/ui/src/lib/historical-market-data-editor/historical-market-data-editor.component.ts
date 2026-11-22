@@ -7,7 +7,7 @@ import {
 import { LineChartItem } from '@ghostfolio/common/interfaces';
 import type { MarketData } from '@ghostfolio/prisma/browser';
 import { DataSource } from '@ghostfolio/prisma/enums';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 
 import { CommonModule } from '@angular/common';
 import type { HttpErrorResponse } from '@angular/common/http';
@@ -97,6 +97,7 @@ export class GfHistoricalMarketDataEditorComponent
     getDateFormatString(this.locale())
   );
   protected readonly isSubmitting = signal(false);
+  protected readonly presentationMode = inject(PresentationModeService);
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly deviceDetectorService = inject(DeviceDetectorService);
@@ -222,6 +223,10 @@ export class GfHistoricalMarketDataEditorComponent
     day: string;
     yearMonth: string;
   }) {
+    if (!this.presentationMode.allowMonetaryEditing()) {
+      return;
+    }
+
     const marketPrice = this.marketDataByMonth[yearMonth]?.[day]?.marketPrice;
 
     const dialogRef = this.dialog.open<
@@ -251,6 +256,10 @@ export class GfHistoricalMarketDataEditorComponent
   }
 
   public onImportHistoricalData() {
+    if (!this.presentationMode.allowMonetaryEditing()) {
+      return;
+    }
+
     try {
       const marketData = csvToJson<UpdateMarketDataDto>(
         this.historicalDataForm.controls.historicalData.controls.csvString

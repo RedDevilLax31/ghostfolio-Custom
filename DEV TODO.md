@@ -3,8 +3,10 @@
 ## UI
 
 - [x] Differentiate development and production instances
-- [ ] fix side to side scrolling because of long names in tables
-- [ ] Inlaw mode - hide numbers and show percentages only
+- [x] fix side to side scrolling because of long names in tables
+- [x] Inlaw mode - Settings can hide monetary amounts for the current browser tab while retaining charts and percentages. Exports and copies still contain real values; free-form text can reveal amounts.
+- [ ] Admin access to all accounts on server to switch back and forth between them all
+- [x] Draft mode in the activities table to show drafts that need correcting - The Drafts only filter combines with the other activity filters. Bulk export and delete apply to all matching drafts, including those on other pages.
 
 ## Bugfixes
 
@@ -25,13 +27,9 @@
   - [x] added xlsx as file type
   - [x] fix dividend handling process
   - [x] import specific processes based on platform of the account
-- [x] Correct Fidelity import process
-  - Fidelity brokerage CSVs are imported locally in USD for Fidelity accounts. Unsupported transactions and cash reinvestments are available in the skipped-rows download; cash balances are not updated.
-  - Vested RSU acquisitions are imported as drafts tagged `Vested RSUs`. Enter the vest-date cost basis from the vesting records and remove `DRAFT` after correcting the activity. Drafts are excluded from portfolio calculations until corrected.
+- [x] Correct Fidelity import process - Fidelity brokerage CSVs are imported locally in USD for Fidelity accounts. Unsupported transactions and cash reinvestments are available in the skipped-rows download; cash balances are not updated. - Vested RSU acquisitions are imported as drafts tagged `Vested RSUs`. Enter the vest-date cost basis from the vesting records and remove `DRAFT` after correcting the activity. Drafts are excluded from portfolio calculations until corrected.
 - [ ] Correct 401k import process (needs to split roth and trad transactions)
-- [x] Prevent duplicate records from loading
-  - Duplicate imports are checked by account, timestamp, type, asset, quantity, price, currency, and fees. Skipped rows can be downloaded from the import preview.
-  - Simultaneous imports are not serialized and may still race; matching transactions can represent legitimate separate trades.
+- [x] Prevent duplicate records from loading - Duplicate imports are checked by account, timestamp, type, asset, quantity, price, currency, and fees. Skipped rows can be downloaded from the import preview. - Simultaneous imports are not serialized and may still race; matching transactions can represent legitimate separate trades.
 - [ ] Does this handle stock splits? - vanguard - should this be manual as its really an exception process?
 - [ ] Does this handle company merges? - vanguard - should this be manual as its really an exception process?
 - [ ] Run automatic data gathering for any new holdings imported

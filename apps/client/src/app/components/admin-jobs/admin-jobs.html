@@ -1,6 +1,6 @@
 <div class="container">
   <div class="row">
-    <div class="col">
+    <div class="col gf-table-container">
       <form class="align-items-center d-flex" [formGroup]="filterForm">
         <mat-form-field appearance="outline" class="w-100 without-hint">
           <mat-select formControlName="status">
@@ -17,7 +17,7 @@
         </mat-form-field>
       </form>
       <table
-        class="gf-table w-100"
+        class="gf-table gf-table-responsive gf-table-responsive-dense w-100"
         mat-table
         matSort
         matSortActive="created"
@@ -33,7 +33,13 @@
           >
             <ng-container i18n>Job ID</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2 text-end" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2 text-end"
+            data-label="Job ID"
+            i18n-data-label
+            mat-cell
+          >
             {{ element.id }}
           </td>
         </ng-container>
@@ -47,7 +53,13 @@
           >
             <ng-container i18n>Type</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2"
+            data-label="Type"
+            i18n-data-label
+            mat-cell
+          >
             @if (element.name === 'GATHER_ASSET_PROFILE') {
               <ng-container i18n>Asset Profile</ng-container>
             } @else if (element.name === 'GATHER_HISTORICAL_MARKET_DATA') {
@@ -67,7 +79,13 @@
           >
             <ng-container i18n>Symbol</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2"
+            data-label="Symbol"
+            i18n-data-label
+            mat-cell
+          >
             {{ element.data?.symbol }}
           </td>
         </ng-container>
@@ -81,7 +99,13 @@
           >
             <ng-container i18n>Data Source</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2"
+            data-label="Data Source"
+            i18n-data-label
+            mat-cell
+          >
             {{ element.data?.dataSource }}
           </td>
         </ng-container>
@@ -95,7 +119,13 @@
           >
             <ng-container i18n>Priority</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2"
+            data-label="Priority"
+            i18n-data-label
+            mat-cell
+          >
             @if (element.opts.priority === DATA_GATHERING_QUEUE_PRIORITY_LOW) {
               <ion-icon class="h6 mb-0" name="chevron-down-circle-outline" />
             } @else if (
@@ -119,7 +149,13 @@
           >
             <ng-container i18n>Attempts</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2 text-end" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2 text-end"
+            data-label="Attempts"
+            i18n-data-label
+            mat-cell
+          >
             {{ element.attemptsMade }}
           </td>
         </ng-container>
@@ -133,7 +169,13 @@
           >
             <ng-container i18n>Created</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2"
+            data-label="Created"
+            i18n-data-label
+            mat-cell
+          >
             {{ element.timestamp | date: defaultDateTimeFormat }}
           </td>
         </ng-container>
@@ -142,7 +184,13 @@
           <th *matHeaderCellDef class="px-1 py-2" mat-header-cell>
             <ng-container i18n>Finished</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2"
+            data-label="Finished"
+            i18n-data-label
+            mat-cell
+          >
             {{ element.finishedOn | date: defaultDateTimeFormat }}
           </td>
         </ng-container>
@@ -151,7 +199,13 @@
           <th *matHeaderCellDef class="px-1 py-2" mat-header-cell>
             <ng-container i18n>Status</ng-container>
           </th>
-          <td *matCellDef="let element" class="px-1 py-2" mat-cell>
+          <td
+            *matCellDef="let element"
+            class="px-1 py-2"
+            data-label="Status"
+            i18n-data-label
+            mat-cell
+          >
             @if (element.state === 'active') {
               <ion-icon class="h6 mb-0" name="play-outline" />
             } @else if (element.state === 'completed') {

@@ -111,6 +111,7 @@ export class GfActivitiesTableComponent<
   @Input() public hasPermissionToCreateActivity: boolean;
   @Input() public hasPermissionToDeleteActivity: boolean;
   @Input() public hasPermissionToExportActivities: boolean;
+  @Input() public hasPermissionToFilterDrafts = false;
   @Input() public hasPermissionToFilterByType?: boolean = false;
   @Input() public hasPermissionToImportActivities: boolean;
   @Input() public hasPermissionToOpenDetails = true;
@@ -127,6 +128,7 @@ export class GfActivitiesTableComponent<
   @Output() activitiesDeleted = new EventEmitter<void>();
   @Output() activityClicked = new EventEmitter<AssetProfileIdentifier>();
   @Output() activityDeleted = new EventEmitter<string>();
+  @Output() draftsFilterChanged = new EventEmitter<boolean>();
   @Output() export = new EventEmitter<void>();
   @Output() exportDrafts = new EventEmitter<string[]>();
   @Output() import = new EventEmitter<void>();
@@ -144,6 +146,7 @@ export class GfActivitiesTableComponent<
   public isDraftActivity = isDraftActivity;
   public isUUID = isUUID;
   public selectedRows = new SelectionModel<T>(true, []);
+  public draftsFilter = new FormControl(false, { nonNullable: true });
   public typesFilter = new FormControl<string[]>([]);
 
   public readonly activityTypes = input<ActivityType[]>([]);
@@ -262,6 +265,12 @@ export class GfActivitiesTableComponent<
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((types) => {
         this.typesFilterChanged.emit(types ?? []);
+      });
+
+    this.draftsFilter.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((draftsOnly) => {
+        this.draftsFilterChanged.emit(draftsOnly);
       });
   }
 

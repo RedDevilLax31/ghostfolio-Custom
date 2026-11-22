@@ -4,7 +4,7 @@ import { DateRange } from '@ghostfolio/common/types';
 
 import { Type as ActivityType } from '@prisma/client';
 import { Transform, TransformFnParams } from 'class-transformer';
-import { IsEnum, IsOptional, Matches } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, Matches } from 'class-validator';
 import { isString } from 'lodash-es';
 
 export class ActivitiesFilterDto extends FilterDto {
@@ -14,6 +14,16 @@ export class ActivitiesFilterDto extends FilterDto {
     return isString(value) ? value.split(',') : value;
   })
   activityTypes?: ActivityType[];
+
+  @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }: TransformFnParams): unknown => {
+    const input: unknown = value;
+    if (input === 'true') return true;
+    if (input === 'false') return false;
+    return input;
+  })
+  draftsOnly?: boolean;
 
   @IsOptional()
   @Matches(DATE_RANGE_PATTERN)

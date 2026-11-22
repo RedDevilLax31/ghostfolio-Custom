@@ -35,7 +35,7 @@ import {
   PortfolioProportionChartClickEvent
 } from '@ghostfolio/ui/portfolio-proportion-chart';
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 import { GfTopHoldingsComponent } from '@ghostfolio/ui/top-holdings';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 import { GfWorldMapChartComponent } from '@ghostfolio/ui/world-map-chart';
@@ -133,6 +133,7 @@ export class GfAllocationsPageComponent implements OnInit {
   };
   protected topHoldings: HoldingWithParents[] | undefined;
   protected readonly UNKNOWN_KEY = UNKNOWN_KEY;
+  protected readonly presentationMode = inject(PresentationModeService);
   protected user: User;
 
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
@@ -160,7 +161,7 @@ export class GfAllocationsPageComponent implements OnInit {
   }
 
   protected get worldMapChartFormat(): string {
-    return this.showValuesInPercentage()
+    return this.showValuesInPercentage() || this.presentationMode.isEnabled()
       ? '{0}%'
       : `{0} ${this.user?.settings?.baseCurrency}`;
   }

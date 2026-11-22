@@ -362,6 +362,59 @@ ngx-skeleton-loader {
 
 .gf-table {
   @include table.gf-table;
+
+  .mat-column-account,
+  .mat-column-alias,
+  .mat-column-grantee,
+  .mat-column-name,
+  .mat-column-nameWithSymbol,
+  .mat-column-url {
+    max-width: 16rem;
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+
+    .text-nowrap,
+    .text-truncate {
+      overflow-wrap: anywhere;
+      white-space: normal !important;
+    }
+
+    .text-truncate {
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    .d-flex,
+    .d-inline-flex {
+      min-width: 0;
+    }
+  }
+}
+
+.gf-table-container {
+  container-type: inline-size;
+}
+
+.gf-table-fit {
+  table-layout: fixed;
+
+  th,
+  td {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
+
+@container (max-width: 700px) {
+  .gf-table-responsive {
+    @include table.responsive-table;
+  }
+}
+
+@container (max-width: 1100px) {
+  .gf-table-responsive-dense {
+    @include table.responsive-table;
+  }
 }
 
 .gf-text-wrap-balance {

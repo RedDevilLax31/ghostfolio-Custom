@@ -7,7 +7,7 @@ import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { GfMembershipCardComponent } from '@ghostfolio/ui/membership-card';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 
 import { CommonModule } from '@angular/common';
 import {
@@ -41,6 +41,7 @@ import { catchError, switchMap } from 'rxjs/operators';
   templateUrl: './user-account-membership.html'
 })
 export class GfUserAccountMembershipComponent {
+  protected readonly presentationMode = inject(PresentationModeService);
   protected readonly baseCurrency: string;
   protected coupon: number | undefined;
   protected defaultDateFormat: string;

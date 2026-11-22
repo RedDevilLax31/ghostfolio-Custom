@@ -188,9 +188,9 @@
         <div class="row">
           <div class="col">
             <h2 class="h6" i18n>Subscription History</h2>
-            <div class="overflow-x-auto">
+            <div class="gf-table-container overflow-x-auto">
               <table
-                class="gf-table w-100"
+                class="gf-table gf-table-responsive w-100"
                 mat-table
                 [dataSource]="subscriptionsDataSource"
               >
@@ -198,7 +198,13 @@
                   <th *matHeaderCellDef class="px-1" mat-header-cell>
                     <ng-container i18n>Creation</ng-container>
                   </th>
-                  <td *matCellDef="let element" class="px-1" mat-cell>
+                  <td
+                    *matCellDef="let element"
+                    class="px-1"
+                    data-label="Creation"
+                    i18n-data-label
+                    mat-cell
+                  >
                     <gf-value
                       [isDate]="true"
                       [locale]="data.locale"
@@ -214,7 +220,13 @@
                   <th *matHeaderCellDef class="px-1" mat-header-cell>
                     <ng-container i18n>Type</ng-container>
                   </th>
-                  <td *matCellDef="let element" class="px-1" mat-cell>
+                  <td
+                    *matCellDef="let element"
+                    class="px-1"
+                    data-label="Type"
+                    i18n-data-label
+                    mat-cell
+                  >
                     {{ getType(element) }}
                   </td>
                   <td *matFooterCellDef class="px-1" mat-footer-cell></td>
@@ -224,10 +236,17 @@
                   <th *matHeaderCellDef class="px-1 text-end" mat-header-cell>
                     <ng-container i18n>Price</ng-container>
                   </th>
-                  <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+                  <td
+                    *matCellDef="let element"
+                    class="px-1 text-end"
+                    data-label="Price"
+                    i18n-data-label
+                    mat-cell
+                  >
                     @if (element.price === null) {
-                      <span>–</span>
-                      <span class="ms-1">{{ baseCurrency }}</span>
+                      <span
+                        >–<span class="ms-1">{{ baseCurrency }}</span></span
+                      >
                     } @else {
                       <gf-value
                         class="d-inline-block justify-content-end"
@@ -238,7 +257,13 @@
                       />
                     }
                   </td>
-                  <td *matFooterCellDef class="px-1 text-end" mat-footer-cell>
+                  <td
+                    *matFooterCellDef
+                    class="px-1 text-end"
+                    data-label="Price"
+                    i18n-data-label
+                    mat-footer-cell
+                  >
                     <gf-value
                       class="d-inline-block justify-content-end"
                       [isCurrency]="true"
@@ -253,7 +278,13 @@
                   <th *matHeaderCellDef class="px-1" mat-header-cell>
                     <ng-container i18n>Expiration</ng-container>
                   </th>
-                  <td *matCellDef="let element" class="px-1" mat-cell>
+                  <td
+                    *matCellDef="let element"
+                    class="px-1"
+                    data-label="Expiration"
+                    i18n-data-label
+                    mat-cell
+                  >
                     <gf-value
                       [isDate]="true"
                       [locale]="data.locale"

@@ -92,12 +92,14 @@ export function getTooltipOptions<T extends ChartType>({
   colorScheme,
   currency = '',
   groupBy,
+  hideValues,
   locale = getLocale(),
   unit = ''
 }: {
   colorScheme?: ColorScheme;
   currency?: string;
   groupBy?: GroupBy;
+  hideValues?: () => boolean;
   locale?: string;
   unit?: string;
 }): Partial<TooltipOptions<T>> {
@@ -120,6 +122,10 @@ export function getTooltipOptions<T extends ChartType>({
         const yPoint = (context.parsed as Point).y;
 
         if (yPoint !== null) {
+          if (hideValues?.()) {
+            return `${label}*****`;
+          }
+
           const value = yPoint.toLocaleString(locale, {
             maximumFractionDigits: 2,
             minimumFractionDigits: 2,

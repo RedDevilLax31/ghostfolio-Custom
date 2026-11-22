@@ -3,7 +3,7 @@ import { SubscriptionType } from '@ghostfolio/common/enums';
 import { SubscriptionOffer } from '@ghostfolio/common/interfaces';
 import { publicRoutes } from '@ghostfolio/common/routes/routes';
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 
 import { DecimalPipe } from '@angular/common';
 import {
@@ -31,6 +31,7 @@ import { RouterModule } from '@angular/router';
   templateUrl: './black-weeks-2026-page.html'
 })
 export class BlackWeeks2026PageComponent implements OnInit {
+  protected readonly presentationMode = inject(PresentationModeService);
   public baseCurrency: string;
   public price: number | undefined;
   public routerLinkBlog = publicRoutes.blog.routerLink;

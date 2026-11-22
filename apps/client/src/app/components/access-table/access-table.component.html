@@ -1,15 +1,31 @@
-<div class="overflow-x-auto">
-  <table class="gf-table w-100" mat-table [dataSource]="dataSource">
+<div class="gf-table-container overflow-x-auto">
+  <table
+    class="gf-table gf-table-responsive w-100"
+    mat-table
+    [dataSource]="dataSource"
+  >
     <ng-container matColumnDef="alias">
       <th *matHeaderCellDef class="px-1" i18n mat-header-cell>Alias</th>
-      <td *matCellDef="let element" class="px-1 text-nowrap" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-nowrap"
+        data-label="Alias"
+        i18n-data-label
+        mat-cell
+      >
         {{ element.alias }}
       </td>
     </ng-container>
 
     <ng-container matColumnDef="grantee">
       <th *matHeaderCellDef class="px-1" i18n mat-header-cell>Grantee</th>
-      <td *matCellDef="let element" class="px-1 text-nowrap" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-nowrap"
+        data-label="Grantee"
+        i18n-data-label
+        mat-cell
+      >
         @if (element.grantee) {
           {{ element.grantee }}
         } @else if (element.type === 'PUBLIC') {
@@ -22,14 +38,26 @@
 
     <ng-container matColumnDef="type">
       <th *matHeaderCellDef class="px-1" i18n mat-header-cell>Permission</th>
-      <td *matCellDef="let element" class="px-1 text-nowrap" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-nowrap"
+        data-label="Permission"
+        i18n-data-label
+        mat-cell
+      >
         <gf-access-level-icon [accessLevel]="getAccessLevel(element.scopes)" />
       </td>
     </ng-container>
 
     <ng-container matColumnDef="lastUsedAt">
       <th *matHeaderCellDef class="px-1" i18n mat-header-cell>Last Used</th>
-      <td *matCellDef="let element" class="px-1 text-nowrap" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-nowrap"
+        data-label="Last Used"
+        i18n-data-label
+        mat-cell
+      >
         @if (element.lastUsedAt) {
           {{ element.lastUsedAt | date: defaultDateFormat() }}
         } @else {
@@ -40,7 +68,13 @@
 
     <ng-container matColumnDef="expiresAt">
       <th *matHeaderCellDef class="px-1" i18n mat-header-cell>Expiration</th>
-      <td *matCellDef="let element" class="px-1 text-nowrap" mat-cell>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-nowrap"
+        data-label="Expiration"
+        i18n-data-label
+        mat-cell
+      >
         {{ element.expiresAt | date: defaultDateFormat() }}
       </td>
     </ng-container>

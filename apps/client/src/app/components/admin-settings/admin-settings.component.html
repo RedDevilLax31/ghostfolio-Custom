@@ -44,9 +44,9 @@
           </mat-card-actions>
         </mat-card>
       }
-      <div class="overflow-x-auto">
+      <div class="gf-table-container overflow-x-auto">
         <table
-          class="gf-table w-100"
+          class="gf-table gf-table-responsive w-100"
           mat-table
           matSort
           matSortActive="name"
@@ -69,7 +69,13 @@
             >
               <ng-container i18n>Name</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1 text-nowrap" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1 text-nowrap"
+              data-label="Name"
+              i18n-data-label
+              mat-cell
+            >
               @if (isGhostfolioDataProvider(element)) {
                 <a
                   class="align-items-center d-inline-flex"
@@ -110,7 +116,13 @@
             <th *matHeaderCellDef class="px-1" mat-header-cell>
               <ng-container i18n>Status</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1"
+              data-label="Status"
+              i18n-data-label
+              mat-cell
+            >
               @if (
                 hasGhostfolioApiKey &&
                 isGhostfolioApiKeyValid === false &&
@@ -134,7 +146,13 @@
             >
               <ng-container i18n>Asset Profiles</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1 text-end"
+              data-label="Asset Profiles"
+              i18n-data-label
+              mat-cell
+            >
               <gf-value
                 class="d-inline-block justify-content-end"
                 [locale]="user?.settings?.locale"

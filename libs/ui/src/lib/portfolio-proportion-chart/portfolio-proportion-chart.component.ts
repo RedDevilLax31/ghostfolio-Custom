@@ -9,11 +9,14 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  effect,
   ElementRef,
+  inject,
   Input,
   OnChanges,
   OnDestroy,
   output,
+  untracked,
   viewChild
 } from '@angular/core';
 import { Big } from 'big.js';
@@ -34,6 +37,7 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import OpenColor from 'open-color';
 
 import { onPrefersColorSchemeChange } from '../chart';
+import { PresentationModeService } from '../services/presentation-mode.service';
 import { PortfolioProportionChartClickEvent } from './interfaces/interfaces';
 
 const {
@@ -81,6 +85,7 @@ export class GfPortfolioProportionChartComponent
   public chart: Chart<'doughnut'>;
   public isLoading = true;
   private hasViewInitialized = false;
+  private readonly presentationMode = inject(PresentationModeService);
 
   protected readonly proportionChartClicked =
     output<PortfolioProportionChartClickEvent>();
@@ -95,6 +100,11 @@ export class GfPortfolioProportionChartComponent
   } = {};
 
   public constructor() {
+    effect(() => {
+      this.presentationMode.isEnabled();
+      untracked(() => this.chart?.update('none'));
+    });
+
     Chart.register(ArcElement, DoughnutController, LinearScale, Tooltip);
 
     onPrefersColorSchemeChange(() => {
@@ -489,7 +499,7 @@ export class GfPortfolioProportionChartComponent
 
           if ((context.raw as number) === Number.MAX_SAFE_INTEGER) {
             return $localize`No data available`;
-          } else if (this.isInPercentage) {
+          } else if (this.isInPercentage || this.presentationMode.isEnabled()) {
             return [`${name ?? symbol}`, `${percentage.toFixed(2)}%`];
           } else {
             const value = context.raw as number;

@@ -17,11 +17,14 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  effect,
   type ElementRef,
+  inject,
   Input,
   OnChanges,
   OnDestroy,
   SimpleChanges,
+  untracked,
   viewChild
 } from '@angular/core';
 import {
@@ -50,6 +53,7 @@ import {
   onPrefersColorSchemeChange,
   registerChartConfiguration
 } from '../chart';
+import { PresentationModeService } from '../services/presentation-mode.service';
 
 const { orange } = OpenColor;
 
@@ -82,8 +86,14 @@ export class GfInvestmentChartComponent
   private investments: InvestmentItem[];
   private values: LineChartItem[];
   private hasViewInitialized = false;
+  private readonly presentationMode = inject(PresentationModeService);
 
   public constructor() {
+    effect(() => {
+      this.presentationMode.isEnabled();
+      untracked(() => this.chart?.update('none'));
+    });
+
     Chart.register(
       BarController,
       BarElement,
@@ -278,6 +288,13 @@ export class GfInvestmentChartComponent
                   colorScheme: this.colorScheme,
                   display: !this.isInPercentage,
                   tickCallback: (tickValue) => {
+                    if (
+                      !this.isInPercentage &&
+                      this.presentationMode.isEnabled()
+                    ) {
+                      return '';
+                    }
+
                     return transformTickToAbbreviation(Number(tickValue));
                   }
                 })
@@ -299,6 +316,8 @@ export class GfInvestmentChartComponent
     return getTimeSeriesTooltipOptions<'bar' | 'line'>({
       colorScheme: this.colorScheme,
       currency: this.isInPercentage ? undefined : this.currency,
+      hideValues: () =>
+        !this.isInPercentage && this.presentationMode.isEnabled(),
       groupBy: this.groupBy,
       locale: this.locale,
       unit: this.isInPercentage ? '%' : undefined

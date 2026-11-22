@@ -154,9 +154,9 @@
             <mat-card-title i18n>Coupons</mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <div class="overflow-x-auto">
+            <div class="gf-table-container overflow-x-auto">
               <table
-                class="gf-table w-100"
+                class="gf-table gf-table-responsive w-100"
                 mat-table
                 [dataSource]="couponsDataSource"
               >
@@ -164,7 +164,13 @@
                   <th *matHeaderCellDef class="px-1" mat-header-cell>
                     <ng-container i18n>Code</ng-container>
                   </th>
-                  <td *matCellDef="let element" class="px-1" mat-cell>
+                  <td
+                    *matCellDef="let element"
+                    class="px-1"
+                    data-label="Code"
+                    i18n-data-label
+                    mat-cell
+                  >
                     <gf-value
                       class="font-monospace"
                       [enableCopyToClipboardButton]="true"
@@ -177,7 +183,13 @@
                   <th *matHeaderCellDef class="px-1 text-end" mat-header-cell>
                     <ng-container i18n>Duration</ng-container>
                   </th>
-                  <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+                  <td
+                    *matCellDef="let element"
+                    class="px-1 text-end"
+                    data-label="Duration"
+                    i18n-data-label
+                    mat-cell
+                  >
                     {{ formatStringValue(element.duration) }}
                   </td>
                 </ng-container>
@@ -186,7 +198,13 @@
                   <th *matHeaderCellDef class="px-1" mat-header-cell>
                     <ng-container i18n>Creation</ng-container>
                   </th>
-                  <td *matCellDef="let element" class="px-1" mat-cell>
+                  <td
+                    *matCellDef="let element"
+                    class="px-1"
+                    data-label="Creation"
+                    i18n-data-label
+                    mat-cell
+                  >
                     @if (element.createdAt) {
                       <gf-value
                         [isDate]="true"

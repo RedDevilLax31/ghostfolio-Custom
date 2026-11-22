@@ -74,9 +74,13 @@
           <h2 class="h4">How the offer works</h2>
           @if (price) {
             <p>
-              You pay {{ baseCurrency }}&nbsp;<strong>{{ price }}</strong> for
-              15 months, which is {{ baseCurrency }}&nbsp;{{
-                price / 15 | number: '1.2-2'
+              You pay {{ baseCurrency }}&nbsp;<strong>{{
+                presentationMode.isEnabled() ? '*****' : price
+              }}</strong>
+              for 15 months, which is {{ baseCurrency }}&nbsp;{{
+                presentationMode.isEnabled()
+                  ? '*****'
+                  : (price / 15 | number: '1.2-2')
               }}
               per month.
             </p>

@@ -24,7 +24,7 @@ import { GfDialogHeaderComponent } from '@ghostfolio/ui/dialog-header';
 import { GfHoldingsTableComponent } from '@ghostfolio/ui/holdings-table';
 import { translate } from '@ghostfolio/ui/i18n';
 import { GfInvestmentChartComponent } from '@ghostfolio/ui/investment-chart';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 import { GfTagsSelectorComponent } from '@ghostfolio/ui/tags-selector';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
@@ -131,6 +131,7 @@ export class GfAccountDetailDialogComponent implements OnInit {
       MatDialogRef<GfAccountDetailDialogComponent, AccountDetailDialogResult>
     >(MatDialogRef);
   private readonly router = inject(Router);
+  private readonly presentationMode = inject(PresentationModeService);
   private readonly userService = inject(UserService);
 
   public constructor() {
@@ -215,6 +216,11 @@ export class GfAccountDetailDialogComponent implements OnInit {
   }
 
   protected onExport() {
+    const presentationModeWasEnabled = this.presentationMode.isEnabled();
+    if (!this.presentationMode.confirmDisclosure()) {
+      return;
+    }
+
     const activityIds = this.dataSource.data.map(({ id }) => {
       return id;
     });
@@ -223,6 +229,13 @@ export class GfAccountDetailDialogComponent implements OnInit {
       .fetchExport({ activityIds })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((data) => {
+        if (
+          !presentationModeWasEnabled &&
+          !this.presentationMode.confirmDisclosure()
+        ) {
+          return;
+        }
+
         downloadAsFile({
           content: data,
           fileName: `ghostfolio-export-${this.name

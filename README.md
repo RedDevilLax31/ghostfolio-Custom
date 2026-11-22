@@ -53,7 +53,16 @@ Ghostfolio is for you if you are...
 - ✅ Import and export transactions
 - ✅ Dark Mode
 - ✅ Zen Mode
+- ✅ Session-only presentation mode to hide monetary values
 - ✅ Progressive Web App (PWA) with a mobile-first design
+
+In **Settings**, enable **Hide monetary values** before presenting the app.
+The setting lasts for the current browser tab's session and survives reloads.
+Charts and percentages remain visible; monetary editing is unavailable until
+the setting is switched off. Exports and copied data still contain real values
+and require confirmation. This is a visual aid, not access control: browser
+data, free-form text, and values inferred from quantities or percentages may
+still disclose information.
 
 <div align="center">
 

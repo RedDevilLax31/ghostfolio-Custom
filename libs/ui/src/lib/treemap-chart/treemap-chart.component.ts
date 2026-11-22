@@ -18,11 +18,14 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  effect,
   ElementRef,
+  inject,
   input,
   OnChanges,
   OnDestroy,
   output,
+  untracked,
   viewChild
 } from '@angular/core';
 import { Big } from 'big.js';
@@ -41,6 +44,7 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import OpenColor from 'open-color';
 
 import { onPrefersColorSchemeChange } from '../chart';
+import { PresentationModeService } from '../services/presentation-mode.service';
 import type {
   GetColorParams,
   GfTreemapDataPoint,
@@ -70,12 +74,18 @@ export class GfTreemapChartComponent
 
   protected isLoading = true;
   private hasViewInitialized = false;
+  private readonly presentationMode = inject(PresentationModeService);
 
   private chart: Chart<'treemap'>;
   private readonly chartCanvas =
     viewChild.required<ElementRef<HTMLCanvasElement>>('chartCanvas');
 
   public constructor() {
+    effect(() => {
+      this.presentationMode.isEnabled();
+      untracked(() => this.chart?.update('none'));
+    });
+
     Chart.register(LinearScale, Tooltip, TreemapController, TreemapElement);
 
     onPrefersColorSchemeChange(() => {
@@ -419,6 +429,14 @@ export class GfTreemapChartComponent
             signDisplay: 'exceptZero',
             useGrouping: true
           })}%`;
+
+          if (this.presentationMode.isEnabled()) {
+            return [
+              `${name} (${allocationInPercentage})`,
+              $localize`Performance`,
+              netPerformanceInPercentageWithSign
+            ];
+          }
 
           if (raw._data.valueInBaseCurrency !== null) {
             const value = raw._data.valueInBaseCurrency;

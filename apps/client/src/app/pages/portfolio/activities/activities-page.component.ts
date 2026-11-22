@@ -13,7 +13,7 @@ import { internalRoutes } from '@ghostfolio/common/routes/routes';
 import { hasScope, scopes } from '@ghostfolio/common/scopes';
 import { GfActivitiesTableComponent } from '@ghostfolio/ui/activities-table';
 import { GfFabComponent } from '@ghostfolio/ui/fab';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 
 import {
   ChangeDetectionStrategy,
@@ -32,6 +32,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Router, RouterModule } from '@angular/router';
 import { format, parseISO } from 'date-fns';
 import { DeviceDetectorService } from 'ngx-device-detector';
+import { Subscription } from 'rxjs';
 
 import { GfImportActivitiesDialogComponent } from './import-activities-dialog/import-activities-dialog.component';
 import {
@@ -67,6 +68,8 @@ export class GfActivitiesPageComponent implements OnInit {
   protected user: User;
 
   private activityTypesFilter: string[] = [];
+  private draftsOnly = false;
+  private activitiesRequest?: Subscription;
 
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly dataService = inject(DataService);
@@ -78,6 +81,7 @@ export class GfActivitiesPageComponent implements OnInit {
     ImpersonationStorageService
   );
   private readonly router = inject(Router);
+  private readonly presentationMode = inject(PresentationModeService);
   private readonly userService = inject(UserService);
 
   protected get hasPermissionToImportActivities() {
@@ -139,6 +143,7 @@ export class GfActivitiesPageComponent implements OnInit {
         activityTypes: this.activityTypesFilter.length
           ? this.activityTypesFilter
           : undefined,
+        draftsOnly: this.draftsOnly,
         filters: this.userService.getFilters(),
         range: this.getDateRange()
       })
@@ -172,6 +177,11 @@ export class GfActivitiesPageComponent implements OnInit {
   }
 
   protected onExport(activityIds?: string[]) {
+    const presentationModeWasEnabled = this.presentationMode.isEnabled();
+    if (!this.presentationMode.confirmDisclosure()) {
+      return;
+    }
+
     let fetchExportParams: any = { activityIds };
 
     if (!activityIds) {
@@ -179,6 +189,7 @@ export class GfActivitiesPageComponent implements OnInit {
         activityTypes: this.activityTypesFilter.length
           ? this.activityTypesFilter
           : undefined,
+        draftsOnly: this.draftsOnly,
         filters: this.userService.getFilters(),
         range: this.getDateRange()
       };
@@ -188,6 +199,13 @@ export class GfActivitiesPageComponent implements OnInit {
       .fetchExport(fetchExportParams)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((data) => {
+        if (
+          !presentationModeWasEnabled &&
+          !this.presentationMode.confirmDisclosure()
+        ) {
+          return;
+        }
+
         downloadAsFile({
           content: data,
           fileName: `ghostfolio-export-${format(
@@ -200,10 +218,22 @@ export class GfActivitiesPageComponent implements OnInit {
   }
 
   protected onExportDrafts(activityIds?: string[]) {
+    const presentationModeWasEnabled = this.presentationMode.isEnabled();
+    if (!this.presentationMode.confirmDisclosure()) {
+      return;
+    }
+
     this.dataService
       .fetchExport({ activityIds, withActivityIds: true })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((data) => {
+        if (
+          !presentationModeWasEnabled &&
+          !this.presentationMode.confirmDisclosure()
+        ) {
+          return;
+        }
+
         downloadAsFile({
           content: this.icsService.transformActivitiesToIcsContent(
             data.activities
@@ -218,6 +248,10 @@ export class GfActivitiesPageComponent implements OnInit {
   }
 
   protected onImport() {
+    if (!this.presentationMode.allowMonetaryEditing()) {
+      return;
+    }
+
     const dialogRef = this.dialog.open<
       GfImportActivitiesDialogComponent,
       ImportActivitiesDialogParams,
@@ -250,6 +284,10 @@ export class GfActivitiesPageComponent implements OnInit {
   }
 
   protected onImportDividends() {
+    if (!this.presentationMode.allowMonetaryEditing()) {
+      return;
+    }
+
     const dialogRef = this.dialog.open<
       GfImportActivitiesDialogComponent,
       ImportActivitiesDialogParams,
@@ -297,16 +335,25 @@ export class GfActivitiesPageComponent implements OnInit {
     this.fetchActivities();
   }
 
+  protected onDraftsFilterChanged(draftsOnly: boolean) {
+    this.draftsOnly = draftsOnly;
+    this.pageIndex = 0;
+
+    this.fetchActivities();
+  }
+
   private fetchActivities() {
+    this.activitiesRequest?.unsubscribe();
     // Reset dataSource and totalItems to show loading state
     this.dataSource = undefined;
     this.totalItems = undefined;
 
-    this.dataService
+    this.activitiesRequest = this.dataService
       .fetchActivities({
         activityTypes: this.activityTypesFilter.length
           ? this.activityTypesFilter
           : undefined,
+        draftsOnly: this.draftsOnly,
         filters: this.userService.getFilters(),
         range: this.getDateRange(),
         skip: this.pageIndex * this.pageSize,

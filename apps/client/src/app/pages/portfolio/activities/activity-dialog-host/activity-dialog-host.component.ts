@@ -4,7 +4,7 @@ import { Activity, User } from '@ghostfolio/common/interfaces';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { internalRoutes } from '@ghostfolio/common/routes/routes';
 import { Scope, hasScope, scopes } from '@ghostfolio/common/scopes';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 
 import {
   ChangeDetectionStrategy,
@@ -48,9 +48,15 @@ export class GfActivityDialogHostComponent implements OnDestroy, OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly presentationMode = inject(PresentationModeService);
   private readonly userService = inject(UserService);
 
   public ngOnInit() {
+    if (!this.presentationMode.allowMonetaryEditing()) {
+      this.navigateBack();
+      return;
+    }
+
     const mode = this.route.snapshot.data.mode as ActivityDialogMode;
 
     // The router reuses this component when only the activity id changes, so
@@ -87,6 +93,11 @@ export class GfActivityDialogHostComponent implements OnDestroy, OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(({ activity, user }) => {
+        if (!this.presentationMode.allowMonetaryEditing()) {
+          this.navigateBack();
+          return;
+        }
+
         if (mode === 'update') {
           if (
             !activity ||

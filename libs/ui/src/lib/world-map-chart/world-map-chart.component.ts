@@ -36,9 +36,6 @@ export class GfWorldMapChartComponent implements OnChanges, OnDestroy {
   public constructor(private changeDetectorRef: ChangeDetectorRef) {}
 
   public ngOnChanges() {
-    // Create a copy before manipulating countries object
-    this.countries = structuredClone(this.countries);
-
     if (this.countries) {
       this.isLoading = true;
 
@@ -53,24 +50,24 @@ export class GfWorldMapChartComponent implements OnChanges, OnDestroy {
   }
 
   private initialize() {
+    const countries = structuredClone(this.countries);
+
     if (this.isInPercentage) {
       // Convert value of countries to percentage
       let sum = 0;
-      Object.keys(this.countries).map((country) => {
-        sum += this.countries[country].value;
+      Object.keys(countries).map((country) => {
+        sum += countries[country].value;
       });
 
-      Object.keys(this.countries).map((country) => {
-        this.countries[country].value = Number(
-          ((this.countries[country].value * 100) / sum).toFixed(2)
+      Object.keys(countries).map((country) => {
+        countries[country].value = Number(
+          ((countries[country].value * 100) / sum).toFixed(2)
         );
       });
     } else {
       // Convert value to fixed-point notation
-      Object.keys(this.countries).map((country) => {
-        this.countries[country].value = Number(
-          this.countries[country].value.toFixed(2)
-        );
+      Object.keys(countries).map((country) => {
+        countries[country].value = Number(countries[country].value.toFixed(2));
       });
     }
 
@@ -86,7 +83,7 @@ export class GfWorldMapChartComponent implements OnChanges, OnDestroy {
             thousandSeparator: getNumberFormatGroup(this.locale)
           }
         },
-        values: this.countries
+        values: countries
       },
       hideFlag: true,
       minZoom: 1.06,

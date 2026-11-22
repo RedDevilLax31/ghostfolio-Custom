@@ -5,6 +5,7 @@ import {
 import { WHERE_ACTIVITY_NOT_DRAFT } from '@ghostfolio/api/helper/activity.helper';
 import { AccountService } from '@ghostfolio/api/services/account/account.service';
 import { AssetProfileSplitService } from '@ghostfolio/api/services/asset-profile-split/asset-profile-split.service';
+import { BenchmarkService } from '@ghostfolio/api/services/benchmark/benchmark.service';
 import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
 import { PrismaService } from '@ghostfolio/api/services/prisma/prisma.service';
 import { DataGatheringService } from '@ghostfolio/api/services/queues/data-gathering/data-gathering.service';
@@ -15,7 +16,8 @@ import {
   GATHER_ASSET_PROFILE_COOLDOWN_IN_MS,
   GATHER_ASSET_PROFILE_PROCESS_JOB_NAME,
   INVESTMENT_ACTIVITY_TYPES,
-  NON_INVESTMENT_ACTIVITY_TYPES
+  NON_INVESTMENT_ACTIVITY_TYPES,
+  TAG_ID_DRAFT
 } from '@ghostfolio/common/config';
 import { parseDate } from '@ghostfolio/common/helper';
 import { Activity, Filter } from '@ghostfolio/common/interfaces';
@@ -350,6 +352,102 @@ describe('ActivitiesService', () => {
       jest.useRealTimers();
     });
 
+    it('applies the draft constraint alongside other filters before pagination and counting', async () => {
+      const findMany = jest
+        .fn<Promise<[]>, [Prisma.OrderFindManyArgs]>()
+        .mockResolvedValue([]);
+      const count = jest.fn().mockResolvedValue(13);
+      const service = new ActivitiesService(
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        { order: { findMany, count } } as unknown as PrismaService,
+        {
+          getSymbolProfiles: jest.fn().mockResolvedValue([])
+        } as unknown as SymbolProfileService,
+        null
+      );
+
+      const result = await service.getActivities({
+        draftsOnly: true,
+        filters: [
+          { id: 'account-id', type: 'ACCOUNT' },
+          { id: 'other-tag', type: 'TAG' }
+        ],
+        includeDrafts: true,
+        skip: 10,
+        take: 10,
+        types: [ActivityType.BUY],
+        userCurrency: 'USD',
+        userId: 'user-id',
+        withExcludedAccountsAndActivities: true
+      });
+
+      const { where } = findMany.mock.calls[0][0];
+      expect(where).toMatchObject({
+        userId: 'user-id',
+        accountId: { in: ['account-id'] },
+        type: { in: [ActivityType.BUY] }
+      });
+      expect(where?.AND).toEqual(
+        expect.arrayContaining([
+          { tags: { some: { id: TAG_ID_DRAFT } } },
+          {
+            OR: [
+              { tags: { some: { OR: [{ id: 'other-tag' }] } } },
+              { account: { tags: { some: { OR: [{ tagId: 'other-tag' }] } } } }
+            ]
+          }
+        ])
+      );
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 10, take: 10, where })
+      );
+      expect(count).toHaveBeenCalledWith({ where });
+      expect(result.count).toBe(13);
+    });
+
+    it('does not constrain activities to drafts when the toggle is off', async () => {
+      const findMany = jest
+        .fn<Promise<[]>, [Prisma.OrderFindManyArgs]>()
+        .mockResolvedValue([]);
+      const service = new ActivitiesService(
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          order: { findMany, count: jest.fn().mockResolvedValue(0) }
+        } as unknown as PrismaService,
+        {
+          getSymbolProfiles: jest.fn().mockResolvedValue([])
+        } as unknown as SymbolProfileService,
+        null
+      );
+
+      await service.getActivities({
+        draftsOnly: false,
+        includeDrafts: true,
+        userCurrency: 'USD',
+        userId: 'user-id'
+      });
+
+      expect(findMany.mock.calls[0][0].where?.AND).not.toContainEqual({
+        tags: { some: { id: TAG_ID_DRAFT } }
+      });
+    });
+
     it('returns the activities with the asset profile but without the relation to the symbol profile', async () => {
       const assetProfile = {
         ...assetProfileDummyData,
@@ -480,6 +578,54 @@ describe('ActivitiesService', () => {
 
       return findMany.mock.calls[0][0].where.AND;
     }
+  });
+
+  describe('deleteActivities', () => {
+    it('deletes only matching drafts when draftsOnly is enabled', async () => {
+      const findMany = jest.fn().mockResolvedValue([]);
+      const deleteMany = jest
+        .fn<Promise<{ count: number }>, [Prisma.OrderDeleteManyArgs]>()
+        .mockResolvedValue({ count: 2 });
+      const service = new ActivitiesService(
+        null,
+        null,
+        null,
+        {
+          getBenchmarkAssetProfiles: jest.fn().mockResolvedValue([])
+        } as unknown as BenchmarkService,
+        null,
+        null,
+        { emit: jest.fn() } as unknown as EventEmitter2,
+        null,
+        null,
+        { order: { findMany, deleteMany } } as unknown as PrismaService,
+        {
+          getSymbolProfilesByIds: jest.fn().mockResolvedValue([])
+        } as unknown as SymbolProfileService,
+        null
+      );
+
+      const count = await service.deleteActivities({
+        draftsOnly: true,
+        filters: [{ id: 'other-tag', type: 'TAG' }],
+        userId: 'user-id'
+      });
+
+      const { where } = deleteMany.mock.calls[0][0];
+      expect(where?.AND).toEqual(
+        expect.arrayContaining([
+          { tags: { some: { id: TAG_ID_DRAFT } } },
+          {
+            OR: [
+              { tags: { some: { OR: [{ id: 'other-tag' }] } } },
+              { account: { tags: { some: { OR: [{ tagId: 'other-tag' }] } } } }
+            ]
+          }
+        ])
+      );
+      expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where }));
+      expect(count).toBe(2);
+    });
   });
 
   describe('getActivitiesForPortfolioCalculator', () => {

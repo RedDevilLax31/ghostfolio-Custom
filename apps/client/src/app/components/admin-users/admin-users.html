@@ -1,8 +1,12 @@
 <div class="container">
   <div class="row">
     <div class="col">
-      <div class="overflow-x-auto">
-        <table class="gf-table" mat-table [dataSource]="dataSource">
+      <div class="gf-table-container overflow-x-auto">
+        <table
+          class="gf-table gf-table-responsive gf-table-responsive-dense"
+          mat-table
+          [dataSource]="dataSource"
+        >
           <ng-container matColumnDef="user">
             <th
               *matHeaderCellDef
@@ -14,6 +18,8 @@
             <td
               *matCellDef="let element"
               class="mat-mdc-cell px-1 py-2"
+              data-label="User"
+              i18n-data-label
               mat-cell
             >
               <div class="align-items-center d-flex text-nowrap">
@@ -62,6 +68,8 @@
               <td
                 *matCellDef="let element"
                 class="mat-mdc-cell px-1 py-2"
+                data-label="Country"
+                i18n-data-label
                 mat-cell
               >
                 <span
@@ -84,6 +92,8 @@
             <td
               *matCellDef="let element"
               class="mat-mdc-cell px-1 py-2 text-nowrap"
+              data-label="Registration"
+              i18n-data-label
               mat-cell
             >
               {{
@@ -106,6 +116,8 @@
             <td
               *matCellDef="let element"
               class="mat-mdc-cell px-1 py-2 text-end"
+              data-label="Accounts"
+              i18n-data-label
               mat-cell
             >
               <gf-value
@@ -127,6 +139,8 @@
             <td
               *matCellDef="let element"
               class="mat-mdc-cell px-1 py-2 text-end"
+              data-label="Activities"
+              i18n-data-label
               mat-cell
             >
               <gf-value
@@ -149,6 +163,8 @@
               <td
                 *matCellDef="let element"
                 class="mat-mdc-cell px-1 py-2 text-end"
+                data-label="Engagement per Day"
+                i18n-data-label
                 mat-cell
               >
                 <gf-value
@@ -170,6 +186,8 @@
               <td
                 *matCellDef="let element"
                 class="mat-mdc-cell px-1 py-2 text-end"
+                data-label="API Requests Today"
+                i18n-data-label
                 mat-cell
               >
                 <gf-value
@@ -194,6 +212,8 @@
               <td
                 *matCellDef="let element"
                 class="mat-mdc-cell px-1 py-2 text-nowrap"
+                data-label="Last Request"
+                i18n-data-label
                 mat-cell
               >
                 <div class="align-items-center d-flex">

@@ -71,6 +71,7 @@ export class ActivitiesController {
       activityTypes,
       assetClasses,
       dataSource,
+      draftsOnly,
       range,
       symbol,
       tags
@@ -94,6 +95,7 @@ export class ActivitiesController {
     });
 
     return this.activitiesService.deleteActivities({
+      draftsOnly,
       endDate,
       filters,
       startDate,
@@ -142,6 +144,7 @@ export class ActivitiesController {
       activityTypes,
       assetClasses,
       dataSource,
+      draftsOnly,
       range,
       skip,
       sortColumn,
@@ -169,6 +172,7 @@ export class ActivitiesController {
     });
 
     const { activities, count } = await this.activitiesService.getActivities({
+      draftsOnly,
       endDate,
       filters,
       skip,

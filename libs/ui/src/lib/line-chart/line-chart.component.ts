@@ -17,11 +17,14 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  effect,
   type ElementRef,
+  inject,
   Input,
   OnChanges,
   OnDestroy,
   SimpleChanges,
+  untracked,
   ViewChild
 } from '@angular/core';
 import {
@@ -45,6 +48,7 @@ import {
   onPrefersColorSchemeChange,
   registerChartConfiguration
 } from '../chart';
+import { PresentationModeService } from '../services/presentation-mode.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,6 +66,7 @@ export class GfLineChartComponent
   @Input() currency?: string;
   @Input() historicalDataItems: LineChartItem[] | null;
   @Input() isAnimated = false;
+  @Input() isMonetary = false;
   @Input() label: string;
   @Input() locale = getLocale();
   @Input() showGradient = false;
@@ -81,8 +86,14 @@ export class GfLineChartComponent
   public isLoading = true;
 
   private readonly ANIMATION_DURATION = 1200;
+  private readonly presentationMode = inject(PresentationModeService);
 
   public constructor(private changeDetectorRef: ChangeDetectorRef) {
+    effect(() => {
+      this.presentationMode.isEnabled();
+      untracked(() => this.chart?.update('none'));
+    });
+
     Chart.register(
       Filler,
       LineController,
@@ -244,6 +255,13 @@ export class GfLineChartComponent
                   display: this.showYAxis,
                   highlightedValues: [this.yMax, this.yMin],
                   tickCallback: (tickValue, index, ticks) => {
+                    if (
+                      (this.isMonetary || this.currency) &&
+                      this.presentationMode.isEnabled()
+                    ) {
+                      return '';
+                    }
+
                     if (index === 0 || index === ticks.length - 1) {
                       // Only print last and first legend entry
 
@@ -316,6 +334,9 @@ export class GfLineChartComponent
     return getTimeSeriesTooltipOptions<'line'>({
       colorScheme: this.colorScheme,
       currency: this.currency,
+      hideValues: () =>
+        !!(this.isMonetary || this.currency) &&
+        this.presentationMode.isEnabled(),
       locale: this.locale,
       unit: this.unit
     });

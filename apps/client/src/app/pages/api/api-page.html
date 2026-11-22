@@ -113,7 +113,12 @@
             <ul>
               @for (quote of quotes | keyvalue; track quote) {
                 <li>
-                  {{ quote.key }}: {{ quote.value.marketPrice }}
+                  {{ quote.key }}:
+                  {{
+                    presentationMode.isEnabled()
+                      ? '*****'
+                      : quote.value.marketPrice
+                  }}
                   {{ quote.value.currency }}
                 </li>
               }
@@ -137,7 +142,14 @@
           } @else if (historicalData) {
             <ul>
               @for (item of historicalData | keyvalue; track item) {
-                <li>{{ item.key }}: {{ item.value.marketPrice }}</li>
+                <li>
+                  {{ item.key }}:
+                  {{
+                    presentationMode.isEnabled()
+                      ? '*****'
+                      : item.value.marketPrice
+                  }}
+                </li>
               }
             </ul>
           } @else {
@@ -159,7 +171,14 @@
           } @else if (dividends) {
             <ul>
               @for (dividend of dividends | keyvalue; track dividend) {
-                <li>{{ dividend.key }}: {{ dividend.value.marketPrice }}</li>
+                <li>
+                  {{ dividend.key }}:
+                  {{
+                    presentationMode.isEnabled()
+                      ? '*****'
+                      : dividend.value.marketPrice
+                  }}
+                </li>
               }
             </ul>
           } @else {

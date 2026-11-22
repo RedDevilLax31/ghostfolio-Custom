@@ -4,6 +4,7 @@ import { DATE_FORMAT, getLocale } from '@ghostfolio/common/helper';
 import { AccountBalancesResponse } from '@ghostfolio/common/interfaces';
 import { validateObjectForForm } from '@ghostfolio/common/utils';
 import { NotificationService } from '@ghostfolio/ui/notifications';
+import { PresentationModeService } from '@ghostfolio/ui/services';
 
 import {
   CUSTOM_ELEMENTS_SCHEMA,
@@ -97,6 +98,7 @@ export class GfAccountBalancesComponent implements OnChanges {
     AccountBalancesResponse['balances'][0]
   >();
   public maxDate = new Date();
+  protected readonly presentationMode = inject(PresentationModeService);
 
   private notificationService = inject(NotificationService);
 
@@ -146,6 +148,10 @@ export class GfAccountBalancesComponent implements OnChanges {
   }
 
   public async onSubmitAccountBalance() {
+    if (!this.presentationMode.allowMonetaryEditing()) {
+      return;
+    }
+
     const { balance, date } = this.accountBalanceForm.value;
 
     if (isNil(balance) || !date) {

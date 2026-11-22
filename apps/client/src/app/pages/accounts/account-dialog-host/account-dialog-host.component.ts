@@ -16,7 +16,7 @@ import { internalRoutes } from '@ghostfolio/common/routes/routes';
 import { Scope, hasScope, scopes } from '@ghostfolio/common/scopes';
 import { AccountWithPlatform } from '@ghostfolio/common/types';
 import { NotificationService } from '@ghostfolio/ui/notifications';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 
 import {
   ChangeDetectionStrategy,
@@ -72,12 +72,18 @@ export class GfAccountDialogHostComponent implements OnDestroy, OnInit {
     ImpersonationStorageService
   );
   private readonly notificationService = inject(NotificationService);
+  private readonly presentationMode = inject(PresentationModeService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly userService = inject(UserService);
 
   public ngOnInit() {
     const mode = this.route.snapshot.data.mode as AccountDialogMode;
+
+    if (mode !== 'detail' && !this.presentationMode.allowMonetaryEditing()) {
+      this.navigateBack();
+      return;
+    }
 
     // The router reuses this component when only the account id changes, so
     // the parameters are observed instead of read from the snapshot once
@@ -113,6 +119,14 @@ export class GfAccountDialogHostComponent implements OnDestroy, OnInit {
           this.navigateBack();
         },
         next: ({ account, accountId, user }) => {
+          if (
+            mode !== 'detail' &&
+            !this.presentationMode.allowMonetaryEditing()
+          ) {
+            this.navigateBack();
+            return;
+          }
+
           if (mode === 'detail') {
             this.openAccountDetailDialog({ accountId, user });
 

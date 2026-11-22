@@ -17,7 +17,7 @@ import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { internalRoutes } from '@ghostfolio/common/routes/routes';
 import { GfCurrencySelectorComponent } from '@ghostfolio/ui/currency-selector';
 import { NotificationService } from '@ghostfolio/ui/notifications';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
 import {
@@ -40,6 +40,7 @@ import {
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -123,6 +124,7 @@ export class GfUserAccountSettingsComponent implements OnInit {
   ];
   protected readonly previewDate = new Date().toISOString();
   protected readonly previewValue = 9999.99;
+  protected readonly presentationMode = inject(PresentationModeService);
   protected user: User;
 
   protected readonly deviceType = computed(
@@ -133,6 +135,7 @@ export class GfUserAccountSettingsComponent implements OnInit {
   private readonly dataService = inject(DataService);
   private readonly deviceDetectorService = inject(DeviceDetectorService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialog = inject(MatDialog);
   private readonly impersonationStorageService = inject(
     ImpersonationStorageService
   );
@@ -330,10 +333,22 @@ export class GfUserAccountSettingsComponent implements OnInit {
   }
 
   protected onExport() {
+    const presentationModeWasEnabled = this.presentationMode.isEnabled();
+    if (!this.presentationMode.confirmDisclosure()) {
+      return;
+    }
+
     this.dataService
       .fetchExport()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((data) => {
+        if (
+          !presentationModeWasEnabled &&
+          !this.presentationMode.confirmDisclosure()
+        ) {
+          return;
+        }
+
         downloadAsFile({
           content: data,
           fileName: `ghostfolio-export-${format(
@@ -343,6 +358,15 @@ export class GfUserAccountSettingsComponent implements OnInit {
           format: 'json'
         });
       });
+  }
+
+  protected onPresentationModeChange({ checked }: MatSlideToggleChange) {
+    if (checked) {
+      this.dialog.closeAll();
+      this.snackBar.dismiss();
+    }
+
+    this.presentationMode.setEnabled(checked);
   }
 
   protected onGhostfolioAiChange(aEvent: MatSlideToggleChange) {

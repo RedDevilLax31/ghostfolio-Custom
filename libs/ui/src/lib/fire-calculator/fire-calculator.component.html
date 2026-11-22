@@ -6,16 +6,22 @@
           <input formControlName="principalInvestmentAmount" matInput />
         </mat-form-field>-->
 
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label i18n>Savings Rate per Month</mat-label>
-          <input
-            formControlName="paymentPerPeriod"
-            matInput
-            step="100"
-            type="number"
-          />
-          <span class="ms-2" matTextSuffix>{{ currency }}</span>
-        </mat-form-field>
+        @if (presentationMode.isEnabled()) {
+          <div class="mb-3">
+            <span i18n>Savings Rate per Month</span>: *****
+          </div>
+        } @else {
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label i18n>Savings Rate per Month</mat-label>
+            <input
+              formControlName="paymentPerPeriod"
+              matInput
+              step="100"
+              type="number"
+            />
+            <span class="ms-2" matTextSuffix>{{ currency }}</span>
+          </mat-form-field>
+        }
 
         <mat-form-field appearance="outline" class="w-100">
           <mat-label i18n>Annual Interest Rate</mat-label>
@@ -58,16 +64,22 @@
           />
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label i18n>Projected Total Amount</mat-label>
-          <input
-            formControlName="projectedTotalAmount"
-            matInput
-            step="100"
-            type="number"
-          />
-          <span class="ms-2" matTextSuffix>{{ currency }}</span>
-        </mat-form-field>
+        @if (presentationMode.isEnabled()) {
+          <div class="mb-3">
+            <span i18n>Projected Total Amount</span>: *****
+          </div>
+        } @else {
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label i18n>Projected Total Amount</mat-label>
+            <input
+              formControlName="projectedTotalAmount"
+              matInput
+              step="100"
+              type="number"
+            />
+            <span class="ms-2" matTextSuffix>{{ currency }}</span>
+          </mat-form-field>
+        }
       </form>
     </div>
     <div class="col-md-9 text-center">

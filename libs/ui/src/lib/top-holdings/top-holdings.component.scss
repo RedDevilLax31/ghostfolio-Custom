@@ -17,6 +17,10 @@
 
       &.holding-detail {
         height: 0;
+
+        @container (max-width: 700px) {
+          height: auto;
+        }
       }
 
       .detail-expand {

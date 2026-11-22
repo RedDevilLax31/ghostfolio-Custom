@@ -8,6 +8,7 @@ import {
   ResponseError
 } from '@ghostfolio/common/interfaces';
 import { NotificationService } from '@ghostfolio/ui/notifications';
+import { PresentationModeService } from '@ghostfolio/ui/services';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
 import {
@@ -50,11 +51,14 @@ export class GfPortfolioPerformanceComponent {
     viewChild.required<ElementRef<HTMLSpanElement>>('value');
 
   private readonly notificationService = inject(NotificationService);
+  private readonly presentationMode = inject(PresentationModeService);
+  private countUp?: CountUp;
 
   public constructor() {
     addIcons({ timeOutline });
 
     effect(() => {
+      this.countUp?.reset();
       if (this.isLoading()) {
         if (this.value().nativeElement) {
           this.value().nativeElement.innerHTML = '';
@@ -62,15 +66,25 @@ export class GfPortfolioPerformanceComponent {
       } else {
         const performance = this.performance();
 
-        if (isNumber(performance?.currentValueInBaseCurrency)) {
-          new CountUp('value', performance.currentValueInBaseCurrency, {
-            decimal: getNumberFormatDecimal(this.locale()),
-            decimalPlaces: this.precision(),
-            duration: 1,
-            separator: getNumberFormatGroup(this.locale())
-          }).start();
+        if (
+          this.presentationMode.isEnabled() &&
+          isNumber(performance?.currentValueInBaseCurrency)
+        ) {
+          this.value().nativeElement.textContent = '*****';
+        } else if (isNumber(performance?.currentValueInBaseCurrency)) {
+          this.countUp = new CountUp(
+            'value',
+            performance.currentValueInBaseCurrency,
+            {
+              decimal: getNumberFormatDecimal(this.locale()),
+              decimalPlaces: this.precision(),
+              duration: 1,
+              separator: getNumberFormatGroup(this.locale())
+            }
+          );
+          this.countUp.start();
         } else if (this.showDetails() === false && performance) {
-          new CountUp(
+          this.countUp = new CountUp(
             'value',
             performance.netPerformancePercentageWithCurrencyEffect * 100,
             {
@@ -79,7 +93,8 @@ export class GfPortfolioPerformanceComponent {
               duration: 1,
               separator: getNumberFormatGroup(this.locale())
             }
-          ).start();
+          );
+          this.countUp.start();
         } else {
           this.value().nativeElement.innerHTML = '*****';
         }

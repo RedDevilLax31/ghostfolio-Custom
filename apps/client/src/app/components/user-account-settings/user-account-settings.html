@@ -4,6 +4,23 @@
     <div class="col">
       <div class="d-flex py-1">
         <div class="w-100">
+          <div class="align-items-sm-baseline g-0 mb-3 row">
+            <div class="col-sm-6 mb-1 mb-sm-0 pe-sm-1">
+              <div i18n>Hide monetary values</div>
+              <div class="hint-text text-body-secondary" i18n>
+                Hides amounts for this browser tab. This is not access control;
+                exports and copied data may contain real amounts.
+              </div>
+            </div>
+            <div class="col-sm-6 ps-sm-1">
+              <mat-slide-toggle
+                aria-label="Hide monetary values"
+                i18n-aria-label
+                [checked]="presentationMode.isEnabled()"
+                (change)="onPresentationModeChange($event)"
+              />
+            </div>
+          </div>
           <div
             class="align-items-sm-baseline g-0 row"
             [class.mb-3]="!hasImpersonationId"

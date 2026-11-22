@@ -26,7 +26,7 @@ import type { SymbolProfile } from '@ghostfolio/prisma/browser';
 import { translate } from '@ghostfolio/ui/i18n';
 import { GfInvestmentChartComponent } from '@ghostfolio/ui/investment-chart';
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
-import { DataService } from '@ghostfolio/ui/services';
+import { DataService, PresentationModeService } from '@ghostfolio/ui/services';
 import { GfToggleComponent } from '@ghostfolio/ui/toggle';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
@@ -127,6 +127,7 @@ export class GfAnalysisPageComponent implements OnInit {
   private readonly dataService = inject(DataService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly deviceDetectorService = inject(DeviceDetectorService);
+  private readonly presentationMode = inject(PresentationModeService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly userService = inject(UserService);
 
@@ -192,6 +193,11 @@ export class GfAnalysisPageComponent implements OnInit {
   }
 
   protected onCopyPromptToClipboard(mode: AiPromptMode) {
+    const presentationModeWasEnabled = this.presentationMode.isEnabled();
+    if (!this.presentationMode.confirmDisclosure()) {
+      return;
+    }
+
     if (mode === 'analysis') {
       this.isLoadingAnalysisPrompt = true;
     } else if (mode === 'portfolio') {
@@ -205,6 +211,16 @@ export class GfAnalysisPageComponent implements OnInit {
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ prompt }) => {
+        if (
+          !presentationModeWasEnabled &&
+          !this.presentationMode.confirmDisclosure()
+        ) {
+          this.isLoadingAnalysisPrompt = false;
+          this.isLoadingPortfolioPrompt = false;
+          this.changeDetectorRef.markForCheck();
+          return;
+        }
+
         this.clipboard.copy(prompt);
 
         const snackBarRef = this.snackBar.open(

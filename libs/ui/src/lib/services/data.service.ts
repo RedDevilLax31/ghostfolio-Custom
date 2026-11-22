@@ -216,6 +216,7 @@ export class DataService {
 
   public fetchActivities({
     activityTypes,
+    draftsOnly,
     filters,
     range,
     skip,
@@ -224,6 +225,7 @@ export class DataService {
     take
   }: {
     activityTypes?: string[];
+    draftsOnly?: boolean;
     filters?: Filter[];
     range?: DateRange;
     skip?: number;
@@ -235,6 +237,10 @@ export class DataService {
 
     if (activityTypes?.length) {
       params = params.append('activityTypes', activityTypes.join(','));
+    }
+
+    if (draftsOnly) {
+      params = params.append('draftsOnly', 'true');
     }
 
     if (range) {
@@ -332,10 +338,12 @@ export class DataService {
 
   public deleteActivities({
     activityTypes,
+    draftsOnly,
     filters,
     range
   }: {
     activityTypes?: string[];
+    draftsOnly?: boolean;
     filters?: Filter[];
     range?: DateRange;
   }) {
@@ -343,6 +351,10 @@ export class DataService {
 
     if (activityTypes?.length) {
       params = params.append('activityTypes', activityTypes.join(','));
+    }
+
+    if (draftsOnly) {
+      params = params.append('draftsOnly', 'true');
     }
 
     if (range) {
@@ -482,12 +494,14 @@ export class DataService {
   public fetchExport({
     activityIds,
     activityTypes,
+    draftsOnly,
     filters,
     range,
     withActivityIds = false
   }: {
     activityIds?: string[];
     activityTypes?: string[];
+    draftsOnly?: boolean;
     filters?: Filter[];
     range?: DateRange;
     withActivityIds?: boolean;
@@ -500,6 +514,10 @@ export class DataService {
 
     if (activityTypes?.length) {
       params = params.append('activityTypes', activityTypes.join(','));
+    }
+
+    if (draftsOnly) {
+      params = params.append('draftsOnly', 'true');
     }
 
     if (range) {

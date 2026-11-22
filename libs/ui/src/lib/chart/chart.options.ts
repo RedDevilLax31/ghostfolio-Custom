@@ -9,17 +9,26 @@ export function getTimeSeriesTooltipOptions<T extends 'bar' | 'line'>({
   colorScheme,
   currency,
   groupBy,
+  hideValues,
   locale,
   unit
 }: {
   colorScheme?: ColorScheme;
   currency?: string;
   groupBy?: GroupBy;
+  hideValues?: () => boolean;
   locale?: string;
   unit?: string;
 }): Partial<TooltipOptions<T>> {
   return {
-    ...getTooltipOptions<T>({ colorScheme, currency, groupBy, locale, unit }),
+    ...getTooltipOptions<T>({
+      colorScheme,
+      currency,
+      groupBy,
+      hideValues,
+      locale,
+      unit
+    }),
     mode: 'index',
     position: 'top',
     xAlign: 'center',

@@ -11,9 +11,9 @@
   </div>
   <div class="row">
     <div class="col">
-      <div class="overflow-x-auto">
+      <div class="gf-table-container overflow-x-auto">
         <table
-          class="gf-table w-100"
+          class="gf-table gf-table-responsive gf-table-responsive-dense w-100"
           mat-table
           matSort
           matSortActive="symbol"
@@ -73,7 +73,13 @@
             <th *matHeaderCellDef class="px-1" mat-header-cell mat-sort-header>
               <ng-container i18n>Symbol</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1"
+              data-label="Symbol"
+              i18n-data-label
+              mat-cell
+            >
               {{ element.symbol }}
             </td>
           </ng-container>
@@ -87,15 +93,23 @@
             >
               <ng-container i18n>Name</ng-container>
             </th>
-            <td *matCellDef="let element" class="lh-normal px-1" mat-cell>
-              <div class="text-truncate">{{ element.name }}</div>
-              @if (!isUUID(element.symbol)) {
-                <div>
-                  <small class="text-body-secondary">{{
-                    element.symbol
-                  }}</small>
-                </div>
-              }
+            <td
+              *matCellDef="let element"
+              class="lh-normal px-1"
+              data-label="Name"
+              i18n-data-label
+              mat-cell
+            >
+              <div>
+                <div class="text-truncate">{{ element.name }}</div>
+                @if (!isUUID(element.symbol)) {
+                  <div>
+                    <small class="text-body-secondary">{{
+                      element.symbol
+                    }}</small>
+                  </div>
+                }
+              </div>
             </td>
             <td *matFooterCellDef class="px-1" mat-footer-cell></td>
           </ng-container>
@@ -107,18 +121,22 @@
             <td
               *matCellDef="let element"
               class="lh-normal px-1 text-nowrap"
+              data-label="Data Source"
+              i18n-data-label
               mat-cell
             >
               <div>
-                {{ element.dataProviderInfo?.name ?? element.dataSource }}
-              </div>
-              @if (element.dataProviderInfo?.name) {
                 <div>
-                  <small class="text-body-secondary">{{
-                    element.dataSource
-                  }}</small>
+                  {{ element.dataProviderInfo?.name ?? element.dataSource }}
                 </div>
-              }
+                @if (element.dataProviderInfo?.name) {
+                  <div>
+                    <small class="text-body-secondary">{{
+                      element.dataSource
+                    }}</small>
+                  </div>
+                }
+              </div>
             </td>
           </ng-container>
 
@@ -129,6 +147,8 @@
             <td
               *matCellDef="let element"
               class="lh-normal px-1 text-nowrap"
+              data-label="Asset Class"
+              i18n-data-label
               mat-cell
             >
               <div>{{ translate(element.assetClass) }}</div>
@@ -149,6 +169,8 @@
             <td
               *matCellDef="let element"
               class="lh-normal px-1 text-nowrap"
+              data-label="Asset Sub Class"
+              i18n-data-label
               mat-cell
             >
               <div>{{ translate(element.assetSubClass) }}</div>
@@ -166,7 +188,13 @@
             <th *matHeaderCellDef class="px-1" mat-header-cell>
               <ng-container i18n>Market Price</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1"
+              data-label="Market Price"
+              i18n-data-label
+              mat-cell
+            >
               <div class="d-flex justify-content-end">
                 <gf-value
                   [isCurrency]="true"
@@ -181,7 +209,13 @@
             <th *matHeaderCellDef class="px-1" mat-header-cell>
               <ng-container i18n>First Activity</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1"
+              data-label="First Activity"
+              i18n-data-label
+              mat-cell
+            >
               @if (element.date) {
                 <gf-value
                   [isDate]="true"
@@ -196,7 +230,13 @@
             <th *matHeaderCellDef class="px-1" mat-header-cell mat-sort-header>
               <ng-container i18n>Activities Count</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1 text-end"
+              data-label="Activities Count"
+              i18n-data-label
+              mat-cell
+            >
               {{ element.activitiesCount }}
             </td>
           </ng-container>
@@ -205,7 +245,13 @@
             <th *matHeaderCellDef class="px-1" mat-header-cell>
               <ng-container i18n>Historical Data</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1 text-end"
+              data-label="Historical Data"
+              i18n-data-label
+              mat-cell
+            >
               {{ element.marketDataItemCount }}
             </td>
           </ng-container>
@@ -214,7 +260,13 @@
             <th *matHeaderCellDef class="px-1" mat-header-cell>
               <ng-container i18n>Sectors Count</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1 text-end"
+              data-label="Sectors Count"
+              i18n-data-label
+              mat-cell
+            >
               {{ element.sectorsCount }}
             </td>
           </ng-container>
@@ -223,7 +275,13 @@
             <th *matHeaderCellDef class="px-1" mat-header-cell>
               <ng-container i18n>Countries Count</ng-container>
             </th>
-            <td *matCellDef="let element" class="px-1 text-end" mat-cell>
+            <td
+              *matCellDef="let element"
+              class="px-1 text-end"
+              data-label="Countries Count"
+              i18n-data-label
+              mat-cell
+            >
               {{ element.countriesCount }}
             </td>
           </ng-container>

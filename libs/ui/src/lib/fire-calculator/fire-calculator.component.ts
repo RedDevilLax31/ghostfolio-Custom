@@ -13,12 +13,15 @@ import {
   ChangeDetectorRef,
   Component,
   DestroyRef,
+  effect,
   ElementRef,
+  inject,
   Input,
   OnChanges,
   OnDestroy,
   output,
   SimpleChanges,
+  untracked,
   viewChild
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -66,6 +69,7 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { debounceTime } from 'rxjs';
 
 import { onPrefersColorSchemeChange } from '../chart';
+import { PresentationModeService } from '../services/presentation-mode.service';
 import { FireCalculatorService } from './fire-calculator.service';
 
 @Component({
@@ -119,6 +123,7 @@ export class GfFireCalculatorComponent implements OnChanges, OnDestroy {
   protected readonly projectedTotalAmountChanged = output<number>();
   protected readonly retirementDateChanged = output<Date>();
   protected readonly savingsRateChanged = output<number>();
+  protected readonly presentationMode = inject(PresentationModeService);
 
   private readonly CONTRIBUTION_PERIOD = 12;
 
@@ -135,6 +140,11 @@ export class GfFireCalculatorComponent implements OnChanges, OnDestroy {
     private fireCalculatorService: FireCalculatorService,
     private formBuilder: FormBuilder
   ) {
+    effect(() => {
+      this.presentationMode.isEnabled();
+      untracked(() => this.chart?.update('none'));
+    });
+
     Chart.register(
       BarController,
       BarElement,
@@ -350,6 +360,10 @@ export class GfFireCalculatorComponent implements OnChanges, OnDestroy {
                 mode: 'index',
                 callbacks: {
                   footer: (items) => {
+                    if (this.presentationMode.isEnabled()) {
+                      return 'Total: *****';
+                    }
+
                     const totalAmount = items.reduce(
                       (a, b) => a + (b.parsed.y ?? 0),
                       0
@@ -370,12 +384,14 @@ export class GfFireCalculatorComponent implements OnChanges, OnDestroy {
                     }
 
                     if (context.parsed.y !== null) {
-                      label += new Intl.NumberFormat(this.locale, {
-                        currency: this.currency ?? DEFAULT_CURRENCY,
-                        currencyDisplay: 'code',
-                        style: 'currency',
-                        useGrouping: true
-                      }).format(context.parsed.y);
+                      label += this.presentationMode.isEnabled()
+                        ? '*****'
+                        : new Intl.NumberFormat(this.locale, {
+                            currency: this.currency ?? DEFAULT_CURRENCY,
+                            currencyDisplay: 'code',
+                            style: 'currency',
+                            useGrouping: true
+                          }).format(context.parsed.y);
                     }
 
                     return label;
@@ -400,6 +416,10 @@ export class GfFireCalculatorComponent implements OnChanges, OnDestroy {
                 stacked: true,
                 ticks: {
                   callback: (value: number) => {
+                    if (this.presentationMode.isEnabled()) {
+                      return '';
+                    }
+
                     return transformTickToAbbreviation(value);
                   }
                 }

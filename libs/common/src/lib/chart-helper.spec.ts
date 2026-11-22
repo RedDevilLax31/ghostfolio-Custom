@@ -3,17 +3,20 @@ import { getTooltipOptions } from './chart-helper';
 describe('getTooltipOptions', () => {
   const getLabel = ({
     currency,
+    hideValues,
     locale,
     unit,
     y
   }: {
     currency?: string;
+    hideValues?: () => boolean;
     locale: string;
     unit?: string;
     y: number;
   }) => {
     const { callbacks } = getTooltipOptions({
       currency,
+      hideValues,
       locale,
       unit,
       colorScheme: 'LIGHT'
@@ -45,5 +48,17 @@ describe('getTooltipOptions', () => {
 
   it('formats the value with the locale without a unit', () => {
     expect(getLabel({ locale: 'de', y: 1234.5 })).toBe('Performance: 1.234,50');
+  });
+
+  it('hides monetary tooltip values when requested', () => {
+    let hidden = true;
+    const hideValues = () => hidden;
+    expect(
+      getLabel({ currency: 'USD', hideValues, locale: 'en-US', y: 1234.5 })
+    ).toBe('Performance: *****');
+    hidden = false;
+    expect(
+      getLabel({ currency: 'USD', hideValues, locale: 'en-US', y: 1234.5 })
+    ).toBe('Performance: 1,234.50 USD');
   });
 });

@@ -1,5 +1,6 @@
 import { GfAccessTableComponent } from '@ghostfolio/client/components/access-table/access-table.component';
 import { ImpersonationStorageService } from '@ghostfolio/client/services/impersonation-storage.service';
+import { TokenStorageService } from '@ghostfolio/client/services/token-storage.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { ConfirmationDialogType } from '@ghostfolio/common/enums';
 import { Access, User } from '@ghostfolio/common/interfaces';
@@ -62,6 +63,8 @@ export class GfUserAccountAccessComponent {
   protected hasPermissionToUpdateOwnAccessToken: boolean;
   protected readonly internalRoutes = internalRoutes;
   protected isAccessTokenHidden = true;
+  protected readonly isSwitchedUser =
+    !!inject(TokenStorageService).getSwitchedUserId();
   protected readonly updateOwnAccessTokenForm = new FormGroup({
     accessToken: new FormControl<string>('', {
       nonNullable: true,
@@ -199,6 +202,10 @@ export class GfUserAccountAccessComponent {
   }
 
   private update() {
+    if (this.isSwitchedUser) {
+      return;
+    }
+
     this.accessesGet = this.user.access.map(
       ({ alias, expiresAt, id, lastUsedAt, scopes }) => {
         return {

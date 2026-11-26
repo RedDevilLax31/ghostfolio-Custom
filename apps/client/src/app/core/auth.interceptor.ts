@@ -53,7 +53,10 @@ export class AuthInterceptor implements HttpInterceptor {
 
       const impersonationId = this.impersonationStorageService.getId();
 
-      if (impersonationId !== null) {
+      if (
+        impersonationId !== null &&
+        !this.tokenStorageService.getSwitchedUserId()
+      ) {
         headers = headers.set(HEADER_KEY_IMPERSONATION, impersonationId);
       }
     }

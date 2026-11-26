@@ -244,6 +244,33 @@ export class AdminService {
     return { count, users };
   }
 
+  public async updateUserAlias({
+    alias,
+    id
+  }: {
+    alias: string;
+    id: string;
+  }): Promise<void> {
+    try {
+      await this.prismaService.user.update({
+        data: { alias: alias || null },
+        where: { id }
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException('This alias is already in use');
+        }
+
+        if (error.code === 'P2025') {
+          throw new NotFoundException(`User with ID ${id} not found`);
+        }
+      }
+
+      throw error;
+    }
+  }
+
   /**
    * Merges the source asset profile into the target asset profile. The
    * activities, the watchlist entries and the market data which is missing
@@ -729,6 +756,7 @@ export class AdminService {
             lastRequestClient: true
           }
         },
+        alias: true,
         createdAt: true,
         id: true,
         provider: true,
@@ -748,7 +776,16 @@ export class AdminService {
     });
 
     return usersWithAnalytics.map(
-      ({ _count, analytics, createdAt, id, provider, role, subscriptions }) => {
+      ({
+        _count,
+        alias,
+        analytics,
+        createdAt,
+        id,
+        provider,
+        role,
+        subscriptions
+      }) => {
         const daysSinceRegistration =
           differenceInDays(new Date(), createdAt) + 1;
         const engagement = analytics
@@ -762,6 +799,7 @@ export class AdminService {
             : undefined;
 
         return {
+          alias,
           createdAt,
           engagement,
           id,

@@ -5,6 +5,10 @@
       <div class="d-flex py-1">
         <div class="w-100">
           <div class="align-items-sm-baseline g-0 mb-3 row">
+            <div class="col-sm-6 mb-1 mb-sm-0 pe-sm-1" i18n>Alias</div>
+            <div class="col-sm-6 ps-sm-1">{{ user?.alias || user?.id }}</div>
+          </div>
+          <div class="align-items-sm-baseline g-0 mb-3 row">
             <div class="col-sm-6 mb-1 mb-sm-0 pe-sm-1">
               <div i18n>Hide monetary values</div>
               <div class="hint-text text-body-secondary" i18n>
@@ -292,7 +296,9 @@
             hideIcon="true"
             [checked]="isWebAuthnEnabled === true"
             [disabled]="
-              !hasPermissionToUpdateUserSettings || !isFingerprintSupported
+              isSwitchedUser ||
+              !hasPermissionToUpdateUserSettings ||
+              !isFingerprintSupported
             "
             (change)="onSignInWithFingerprintChange($event)"
           />

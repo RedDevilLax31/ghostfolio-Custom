@@ -1,4 +1,24 @@
 <mat-toolbar class="px-0">
+  @if (switchedUserId) {
+    <button class="switched-user" mat-button (click)="returnToAdmin()">
+      <span i18n>Return to admin</span>
+      <span
+        class="switched-user-id"
+        [title]="
+          user()?.id === switchedUserId && user()?.alias
+            ? user()?.alias + ' (' + switchedUserId + ')'
+            : switchedUserId
+        "
+      >
+        (<span i18n>user</span>:
+        {{
+          user()?.id === switchedUserId && user()?.alias
+            ? user()?.alias
+            : switchedUserId.slice(0, 8)
+        }})
+      </span>
+    </button>
+  }
   @if (user()) {
     <div class="d-flex h-100 logo-container" [class.filled]="hasTabs()">
       <a

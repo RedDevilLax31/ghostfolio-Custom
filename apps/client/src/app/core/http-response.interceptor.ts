@@ -1,4 +1,5 @@
 import { ImpersonationStorageService } from '@ghostfolio/client/services/impersonation-storage.service';
+import { TokenStorageService } from '@ghostfolio/client/services/token-storage.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { WebAuthnService } from '@ghostfolio/client/services/web-authn.service';
 import { HTTP_RESPONSE_MESSAGE_IMPERSONATION_UNRESOLVED } from '@ghostfolio/common/config';
@@ -37,6 +38,7 @@ export class HttpResponseInterceptor implements HttpInterceptor {
   );
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly tokenStorageService = inject(TokenStorageService);
   private readonly userService = inject(UserService);
   private readonly webAuthnService = inject(WebAuthnService);
 
@@ -135,6 +137,16 @@ export class HttpResponseInterceptor implements HttpInterceptor {
           this.snackBarRef = snackBarRef;
         } else if (error.status === StatusCodes.UNAUTHORIZED) {
           if (!error.url?.includes('/data-providers/ghostfolio/status')) {
+            if (this.tokenStorageService.getSwitchedUserId()) {
+              this.tokenStorageService.clearSwitchedUser();
+              window.alert(
+                $localize`The switched session is no longer available. Returning to the administrator account.`
+              );
+              window.location.href = `/${document.documentElement.lang}`;
+
+              return throwError(error);
+            }
+
             if (this.webAuthnService.isEnabled()) {
               this.router.navigate(internalRoutes.webauthn.routerLink);
             } else {

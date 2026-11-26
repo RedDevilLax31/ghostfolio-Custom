@@ -127,6 +127,15 @@ export class AdminService {
     return this.http.get<AdminUsersResponse>('/api/v1/users', { params });
   }
 
+  public updateUserAlias({ alias, id }: { alias: string; id: string }) {
+    return this.http.put<void>(
+      `/api/v1/users/${encodeURIComponent(id)}/alias`,
+      {
+        alias
+      }
+    );
+  }
+
   public gatherMax() {
     return this.http.post<void>('/api/v1/admin/gather/max', {});
   }

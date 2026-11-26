@@ -109,6 +109,8 @@ export class GfHeaderComponent implements OnChanges {
   protected readonly internalRoutes = internalRoutes;
   protected isInitialNavigationPending: boolean;
   protected isMenuOpen: boolean;
+  protected readonly switchedUserId =
+    inject(TokenStorageService).getSwitchedUserId();
   protected readonly routeAbout = publicRoutes.about.path;
   protected readonly routeFeatures = publicRoutes.features.path;
   protected readonly routeMarkets = publicRoutes.markets.path;
@@ -224,6 +226,11 @@ export class GfHeaderComponent implements OnChanges {
 
   protected closeAssistant() {
     this.assistentMenuTriggerElement().closeMenu();
+  }
+
+  protected returnToAdmin() {
+    this.tokenStorageService.clearSwitchedUser();
+    window.location.href = `/${document.documentElement.lang}`;
   }
 
   protected impersonateAccount(aId: string | null) {

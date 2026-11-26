@@ -167,6 +167,35 @@ docker compose -f docker/docker-compose.build.yml up -d
 1. Open http://localhost:3333 in your browser
 1. Create a new user via _Get Started_ (this first user will get the role `ADMIN`)
 
+#### Switch to Another User
+
+Administrators can select **Switch to User** from a user's menu under
+**Admin Control → Users**. The header identifies the selected user and provides
+**Return to admin**. Switching is available to server administrators in both
+development and production; it does not create an audit log or notify users.
+
+Administrators can edit a user's optional alias from the user menu or user
+details. Aliases are visible to the user in account settings and in the
+switched-session header. They must be unique ignoring case, are trimmed, and
+are limited to 25 characters; clearing the field removes the alias. User IDs
+remain visible in Admin Control and are used as the fallback. Case comparisons
+use the database's configured locale. Updates from another session appear when
+the current account data is refreshed.
+
+The switched session can view and change the selected user's portfolio,
+subject to that user's role and existing restrictions. It cannot change
+credentials, biometric devices, sharing, API keys, account deletion, or
+server-wide administration. Return to the administrator account before
+performing those actions. The switched credential expires no later than the
+administrator's login, and is invalidated if the administrator loses the
+admin role or the target user is deleted.
+
+The switched session is stored in the browser tab, independently of other
+already-open tabs. Browsers may copy tab-scoped storage when duplicating or
+opening a tab from another tab, so check the header before making changes.
+Treat administrator credentials and switched-session credentials as sensitive:
+they permit access to other users' financial information.
+
 #### Recover an Admin Security Token
 
 An operator with trusted server and database access can recover an existing

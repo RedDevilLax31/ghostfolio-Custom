@@ -17,6 +17,7 @@ export interface User {
   accounts: AccountWithPlatform[];
   activitiesCount: number;
   activityTypes: ActivityType[];
+  alias: string | null;
   dateOfFirstActivity: Date;
   id: string;
   permissions: string[];

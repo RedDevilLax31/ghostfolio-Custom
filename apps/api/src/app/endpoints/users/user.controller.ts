@@ -138,12 +138,18 @@ export class UserController {
     @Headers('accept-language') acceptLanguage: string,
     @Impersonation() { isActive, scopes, userId }: ImpersonationContext
   ): Promise<User> {
-    return this.userService.getUser({
+    const user = await this.userService.getUser({
       scopes,
       impersonationUserId: isActive ? userId : undefined,
       locale: acceptLanguage?.split(',')?.[0],
       user: this.request.user
     });
+
+    if (this.request.adminSwitchActorId) {
+      user.access = [];
+    }
+
+    return user;
   }
 
   @Post()

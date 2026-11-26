@@ -1,3 +1,7 @@
+import {
+  GfUserAliasDialogComponent,
+  UserAliasDialogParams
+} from '@ghostfolio/client/components/user-alias-dialog/user-alias-dialog.component';
 import { formatRelativeTime } from '@ghostfolio/client/util/date.util';
 import {
   canDeleteUser,
@@ -21,7 +25,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogRef
+} from '@angular/material/dialog';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -80,6 +88,7 @@ export class GfUserDetailDialogComponent implements OnInit {
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly dataService = inject(DataService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialog = inject(MatDialog);
 
   private readonly dialogRef =
     inject<MatDialogRef<GfUserDetailDialogComponent, UserDetailDialogResult>>(
@@ -103,6 +112,28 @@ export class GfUserDetailDialogComponent implements OnInit {
       action: 'delete',
       userId: this.data.userId
     });
+  }
+
+  protected editAlias() {
+    this.dialog
+      .open<GfUserAliasDialogComponent, UserAliasDialogParams, boolean>(
+        GfUserAliasDialogComponent,
+        {
+          data: {
+            alias: this.user.alias,
+            currentUserId: this.data.currentUserId,
+            userId: this.data.userId
+          },
+          width: '30rem'
+        }
+      )
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((saved) => {
+        if (saved) {
+          this.initialize();
+        }
+      });
   }
 
   protected getSum() {

@@ -1,4 +1,5 @@
 import { AdminService } from '@ghostfolio/api/app/admin/admin.service';
+import { ALLOW_DURING_IMPERSONATION_KEY } from '@ghostfolio/api/decorators/allow-during-impersonation.decorator';
 import { AllowDuringImpersonation } from '@ghostfolio/api/decorators/allow-during-impersonation.decorator';
 import { HasPermission } from '@ghostfolio/api/decorators/has-permission.decorator';
 import { HasPermissionGuard } from '@ghostfolio/api/guards/has-permission.guard';
@@ -13,6 +14,7 @@ import type { RequestWithUser } from '@ghostfolio/common/types';
 
 import {
   Controller,
+  Body,
   Delete,
   Get,
   HttpException,
@@ -20,12 +22,16 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
   Query,
+  SetMetadata,
   UseGuards
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
+
+import { UpdateUserAliasDto } from './update-user-alias.dto';
 
 @AllowDuringImpersonation()
 @Controller('users')
@@ -70,6 +76,17 @@ export class UsersController {
       skip,
       take
     });
+  }
+
+  @Put(':id/alias')
+  @SetMetadata(ALLOW_DURING_IMPERSONATION_KEY, false)
+  @HasPermission(permissions.accessAdminControl)
+  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  public async updateUserAlias(
+    @Param('id') id: string,
+    @Body() { alias }: UpdateUserAliasDto
+  ): Promise<void> {
+    await this.adminService.updateUserAlias({ alias, id });
   }
 
   @HasPermission(permissions.accessAdminControl)

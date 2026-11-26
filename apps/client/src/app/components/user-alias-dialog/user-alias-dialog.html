@@ -1,0 +1,42 @@
+<form (submit)="save(); $event.preventDefault()">
+  <h1 i18n mat-dialog-title>Edit user alias</h1>
+  <div mat-dialog-content>
+    <p class="text-body-secondary" i18n>
+      Aliases must be unique and may contain up to 25 characters. Leave empty to
+      remove the alias.
+    </p>
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label i18n>Alias</mat-label>
+      <input matInput [formControl]="aliasControl" />
+      @if (aliasControl.hasError('maxlength')) {
+        <mat-error i18n>Use no more than 25 characters.</mat-error>
+      }
+      @if (aliasControl.hasError('invalidCharacter')) {
+        <mat-error i18n>The alias contains an invalid character.</mat-error>
+      }
+    </mat-form-field>
+    @if (errorMessage) {
+      <p class="text-danger" role="alert">{{ errorMessage }}</p>
+    }
+  </div>
+  <div class="justify-content-end" mat-dialog-actions>
+    <button
+      i18n
+      mat-button
+      mat-dialog-close
+      type="button"
+      [disabled]="isSaving"
+    >
+      Cancel
+    </button>
+    <button
+      color="primary"
+      i18n
+      mat-flat-button
+      type="submit"
+      [disabled]="aliasControl.invalid || isSaving"
+    >
+      Save
+    </button>
+  </div>
+</form>

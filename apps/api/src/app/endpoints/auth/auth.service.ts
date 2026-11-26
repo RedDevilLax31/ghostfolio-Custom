@@ -2,7 +2,12 @@ import { ConfigurationService } from '@ghostfolio/api/services/configuration/con
 import { PropertyService } from '@ghostfolio/api/services/property/property.service';
 import { UserService } from '@ghostfolio/api/services/user/user.service';
 
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 import { ValidateOAuthLoginParams } from './interfaces/interfaces';
@@ -15,6 +20,56 @@ export class AuthService {
     private readonly propertyService: PropertyService,
     private readonly userService: UserService
   ) {}
+
+  public async switchUser({
+    actorId,
+    token,
+    targetId
+  }: {
+    actorId: string;
+    token: string;
+    targetId: string;
+  }): Promise<string> {
+    let payload: {
+      exp?: number;
+      id?: string;
+      switchActorId?: string;
+    };
+
+    try {
+      payload = await this.jwtService.verifyAsync(token);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'].includes(
+          error.name
+        )
+      ) {
+        throw new UnauthorizedException();
+      }
+
+      throw error;
+    }
+    const actor = await this.userService.user({ id: actorId });
+    const target = await this.userService.user({ id: targetId });
+    const issuedAt = Math.floor(Date.now() / 1000);
+
+    if (
+      actor?.role !== 'ADMIN' ||
+      !target ||
+      payload.id !== actorId ||
+      payload.switchActorId !== undefined ||
+      typeof payload.exp !== 'number' ||
+      payload.exp <= issuedAt
+    ) {
+      throw new ForbiddenException();
+    }
+
+    return this.jwtService.sign(
+      { iat: issuedAt, id: target.id, switchActorId: actor.id },
+      { expiresIn: payload.exp - issuedAt }
+    );
+  }
 
   public async validateAnonymousLogin(accessToken: string): Promise<string> {
     const hashedAccessToken = this.userService.createAccessToken({

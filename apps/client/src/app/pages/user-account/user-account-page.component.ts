@@ -1,3 +1,4 @@
+import { TokenStorageService } from '@ghostfolio/client/services/token-storage.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { User } from '@ghostfolio/common/interfaces';
 import { internalRoutes } from '@ghostfolio/common/routes/routes';
@@ -31,6 +32,7 @@ export class GfUserAccountPageComponent {
   public constructor(
     private changeDetectorRef: ChangeDetectorRef,
     private destroyRef: DestroyRef,
+    private tokenStorageService: TokenStorageService,
     private userService: UserService
   ) {
     this.userService.stateChanged
@@ -55,7 +57,8 @@ export class GfUserAccountPageComponent {
             {
               iconName: 'key-outline',
               label: internalRoutes.account.subRoutes.access.title,
-              routerLink: internalRoutes.account.subRoutes.access.routerLink
+              routerLink: internalRoutes.account.subRoutes.access.routerLink,
+              showCondition: !this.tokenStorageService.getSwitchedUserId()
             }
           ];
         }

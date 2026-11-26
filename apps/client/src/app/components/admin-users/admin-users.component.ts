@@ -1,9 +1,14 @@
 import {
+  GfUserAliasDialogComponent,
+  UserAliasDialogParams
+} from '@ghostfolio/client/components/user-alias-dialog/user-alias-dialog.component';
+import {
   UserDetailDialogParams,
   UserDetailDialogResult
 } from '@ghostfolio/client/components/user-detail-dialog/interfaces/interfaces';
 import { GfUserDetailDialogComponent } from '@ghostfolio/client/components/user-detail-dialog/user-detail-dialog.component';
 import { ImpersonationStorageService } from '@ghostfolio/client/services/impersonation-storage.service';
+import { TokenStorageService } from '@ghostfolio/client/services/token-storage.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { formatRelativeTime } from '@ghostfolio/client/util/date.util';
 import { DEFAULT_LOCALE, DEFAULT_PAGE_SIZE } from '@ghostfolio/common/config';
@@ -29,6 +34,7 @@ import { AdminService, DataService } from '@ghostfolio/ui/services';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -100,6 +106,7 @@ export class GfAdminUsersComponent implements OnInit {
   protected readonly getEmojiFlag = getEmojiFlag;
   protected hasPermissionForSubscription: boolean;
   protected hasPermissionToImpersonateAllUsers: boolean;
+  protected hasPermissionToAccessAdminControl: boolean;
   protected info: InfoItem;
   protected isLoading = false;
   protected readonly pageSize = DEFAULT_PAGE_SIZE;
@@ -129,6 +136,7 @@ export class GfAdminUsersComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly deviceDetectorService = inject(DeviceDetectorService);
   private readonly dialog = inject(MatDialog);
+  private readonly http = inject(HttpClient);
 
   private readonly impersonationStorageService = inject(
     ImpersonationStorageService
@@ -137,6 +145,7 @@ export class GfAdminUsersComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly tokenStorageService = inject(TokenStorageService);
   private readonly userService = inject(UserService);
 
   public constructor() {
@@ -183,6 +192,10 @@ export class GfAdminUsersComponent implements OnInit {
             this.hasPermissionToImpersonateAllUsers = hasPermission(
               this.user.permissions,
               permissions.impersonateAllUsers
+            );
+            this.hasPermissionToAccessAdminControl = hasPermission(
+              this.user.permissions,
+              permissions.accessAdminControl
             );
 
             this.changeDetectorRef.markForCheck();
@@ -292,6 +305,52 @@ export class GfAdminUsersComponent implements OnInit {
     window.location.reload();
   }
 
+  protected onSwitchUser(userId: string) {
+    this.http
+      .post<{ authToken: string }>(
+        `/api/v1/auth/switch/${encodeURIComponent(userId)}`,
+        {}
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ authToken }) => {
+          this.tokenStorageService.setSwitchedUser(userId, authToken);
+          window.location.href = `/${document.documentElement.lang}`;
+        },
+        error: () => {
+          this.notificationService.alert({
+            title: $localize`Unable to switch user`,
+            message: $localize`Return to your own account and try again.`
+          });
+        }
+      });
+  }
+
+  protected onEditAlias(user: AdminUsersResponse['users'][0]) {
+    this.dialog
+      .open<GfUserAliasDialogComponent, UserAliasDialogParams, boolean>(
+        GfUserAliasDialogComponent,
+        {
+          data: {
+            alias: user.alias,
+            currentUserId: this.user.id,
+            userId: user.id
+          },
+          width: '30rem'
+        }
+      )
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((saved) => {
+        if (saved) {
+          this.fetchUsers({
+            pageIndex: this.paginator().pageIndex,
+            showLoading: false
+          });
+        }
+      });
+  }
+
   protected onOpenUserDetailDialog(userId: string) {
     this.router.navigate(this.routerLinkAdminControlUsers.concat(userId));
   }
@@ -353,6 +412,10 @@ export class GfAdminUsersComponent implements OnInit {
           this.onDeleteUser(data.userId);
         } else {
           this.router.navigate(this.routerLinkAdminControlUsers);
+          this.fetchUsers({
+            pageIndex: this.paginator().pageIndex,
+            showLoading: false
+          });
         }
       });
   }

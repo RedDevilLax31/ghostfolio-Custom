@@ -323,6 +323,7 @@ model User {
   accessToken   String?
   accounts      Account[]
   activities    Order[]
+  alias         String?         @db.VarChar(25)
   analytics     Analytics?
   apiKeys       ApiKey[]
   authChallenge String?

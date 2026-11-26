@@ -196,6 +196,7 @@ export class UserService {
     return {
       activitiesCount,
       activityTypes,
+      alias: user.alias,
       dateOfFirstActivity,
       id,
       referralPartners,
@@ -299,6 +300,7 @@ export class UserService {
       accessToken,
       accounts,
       analytics,
+      alias,
       authChallenge,
       createdAt,
       id,
@@ -316,6 +318,7 @@ export class UserService {
       accessToken,
       accounts,
       activitiesCount,
+      alias,
       authChallenge,
       createdAt,
       id,

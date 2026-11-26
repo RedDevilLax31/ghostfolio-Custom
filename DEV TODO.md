@@ -5,8 +5,9 @@
 - [x] Differentiate development and production instances
 - [x] fix side to side scrolling because of long names in tables
 - [x] Inlaw mode - Settings can hide monetary amounts for the current browser tab while retaining charts and percentages. Exports and copies still contain real values; free-form text can reveal amounts.
-- [ ] Admin access to all accounts on server to switch back and forth between them all
+- [x] Admin access to all accounts on server to switch back and forth between them all - Use Admin Control > Users to switch; security, sharing, and server-wide admin operations are protected while switched.
 - [x] Draft mode in the activities table to show drafts that need correcting - The Drafts only filter combines with the other activity filters. Bulk export and delete apply to all matching drafts, including those on other pages.
+- [ ] Add a last refresh date to the individual holdings in the gather market data tab on the admin page
 
 ## Bugfixes
 
@@ -52,6 +53,8 @@
 
 - [ ] Roth vs traditional vs taxable analysis
 - [ ] end/start of day email summary + analysis of moves to make
+- [ ] single stock performance view to see portfolio work of only single stocks without etfs, better understand the
+      success and failures of single stock selections
 
 ## Backend Work
 

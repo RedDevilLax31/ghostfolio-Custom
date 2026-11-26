@@ -1,4 +1,5 @@
 import { SettingsStorageService } from '@ghostfolio/client/services/settings-storage.service';
+import { TokenStorageService } from '@ghostfolio/client/services/token-storage.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { internalRoutes, publicRoutes } from '@ghostfolio/common/routes/routes';
 import { DataService } from '@ghostfolio/ui/services';
@@ -17,6 +18,7 @@ export class AuthGuard {
   private readonly dataService = inject(DataService);
   private readonly router = inject(Router);
   private readonly settingsStorageService = inject(SettingsStorageService);
+  private readonly tokenStorageService = inject(TokenStorageService);
   private readonly userService = inject(UserService);
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
@@ -67,7 +69,11 @@ export class AuthGuard {
         .subscribe((user) => {
           const userLanguage = user?.settings?.language;
 
-          if (userLanguage && document.documentElement.lang !== userLanguage) {
+          if (
+            userLanguage &&
+            document.documentElement.lang !== userLanguage &&
+            !this.tokenStorageService.getSwitchedUserId()
+          ) {
             this.dataService
               .putUserSetting({ language: document.documentElement.lang })
               .subscribe(() => {

@@ -7,13 +7,20 @@ import {
   HEADER_KEY_TIMEZONE
 } from '@ghostfolio/common/config';
 import { hasRole } from '@ghostfolio/common/permissions';
+import type { UserWithSettings } from '@ghostfolio/common/types';
 
 import { HttpException, Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { RequestClient } from '@prisma/client';
 import * as countriesAndTimezones from 'countries-and-timezones';
+import { Request } from 'express';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+
+import {
+  isAllowedAdminSwitchRequest,
+  restrictAdminSwitchPermissions
+} from './admin-switch-policy';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -28,21 +35,64 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  public async validate(request: Request, { id }: { id: string }) {
+  public async validate(
+    request: Request & { adminSwitchActorId?: string },
+    { id, switchActorId }: { id: string; switchActorId?: string }
+  ) {
     try {
       const timezone = request.headers[HEADER_KEY_TIMEZONE.toLowerCase()];
+      let actor: UserWithSettings | null = null;
+
+      if (switchActorId !== undefined) {
+        if (
+          typeof switchActorId !== 'string' ||
+          !switchActorId ||
+          !isAllowedAdminSwitchRequest(
+            request.method,
+            request.originalUrl.split('?')[0]
+          ) ||
+          request.headers['impersonation-id']
+        ) {
+          throw new HttpException(
+            getReasonPhrase(StatusCodes.FORBIDDEN),
+            StatusCodes.FORBIDDEN
+          );
+        }
+
+        actor = await this.userService.user({ id: switchActorId });
+
+        if (!actor || !hasRole(actor, 'ADMIN')) {
+          throw new HttpException(
+            getReasonPhrase(StatusCodes.UNAUTHORIZED),
+            StatusCodes.UNAUTHORIZED
+          );
+        }
+
+        request.adminSwitchActorId = switchActorId;
+      }
+
       const user = await this.userService.user({ id });
 
       if (user) {
+        if (switchActorId !== undefined) {
+          restrictAdminSwitchPermissions(user);
+        }
+
         if (this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION')) {
-          if (hasRole(user, 'INACTIVE')) {
+          const requestingUser = actor ?? user;
+
+          if (hasRole(requestingUser, 'INACTIVE')) {
             throw new HttpException(
               getReasonPhrase(StatusCodes.TOO_MANY_REQUESTS),
               StatusCodes.TOO_MANY_REQUESTS
             );
           }
 
-          if (await this.userService.isDailyRequestLimitExceeded({ user })) {
+          if (
+            await this.userService.isDailyRequestLimitExceeded({
+              user: requestingUser
+            })
+          ) {
             throw new HttpException(
               getReasonPhrase(StatusCodes.TOO_MANY_REQUESTS),
               StatusCodes.TOO_MANY_REQUESTS
@@ -50,14 +100,16 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
           }
 
           const country =
-            countriesAndTimezones.getCountryForTimezone(timezone)?.id;
+            typeof timezone === 'string'
+              ? countriesAndTimezones.getCountryForTimezone(timezone)?.id
+              : undefined;
 
           await this.userService.updateAnalytics({
             country,
             requestClient: isBrowserUserAgent(request.headers['user-agent'])
               ? RequestClient.WEB
               : RequestClient.API,
-            userId: user.id
+            userId: requestingUser.id
           });
         }
 
@@ -77,7 +129,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         );
       }
     } catch (error) {
-      if (error?.getStatus?.() === StatusCodes.TOO_MANY_REQUESTS) {
+      if (
+        error instanceof HttpException &&
+        (error.getStatus() === StatusCodes.TOO_MANY_REQUESTS ||
+          error.getStatus() === StatusCodes.FORBIDDEN)
+      ) {
         throw error;
       } else {
         throw new HttpException(

@@ -4,6 +4,7 @@ import {
   KEY_TOKEN,
   SettingsStorageService
 } from '@ghostfolio/client/services/settings-storage.service';
+import { TokenStorageService } from '@ghostfolio/client/services/token-storage.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { WebAuthnService } from '@ghostfolio/client/services/web-authn.service';
 import {
@@ -100,6 +101,8 @@ export class GfUserAccountSettingsComponent implements OnInit {
   protected hasPermissionToUpdateViewMode: boolean;
   protected hasPermissionToUpdateUserSettings: boolean;
   protected isAccessTokenHidden = true;
+  protected readonly isSwitchedUser =
+    !!inject(TokenStorageService).getSwitchedUserId();
   protected readonly isFingerprintSupported = this.doesBrowserSupportAuthn();
   protected isLoading = true;
   protected isWebAuthnEnabled: boolean;

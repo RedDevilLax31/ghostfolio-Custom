@@ -2,6 +2,7 @@ import { AllowDuringImpersonation } from '@ghostfolio/api/decorators/allow-durin
 import { CustomThrottlerGuard } from '@ghostfolio/api/guards/custom-throttler.guard';
 import { HasPermissionGuard } from '@ghostfolio/api/guards/has-permission.guard';
 import { OAuthCallbackGuard } from '@ghostfolio/api/guards/oauth-callback.guard';
+import { getAccessIdOfBearerToken } from '@ghostfolio/api/helper/bearer-token.helper';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { DEFAULT_LANGUAGE_CODE } from '@ghostfolio/common/config';
 import { AuthDeviceDto } from '@ghostfolio/common/dtos';
@@ -16,6 +17,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Param,
   Post,
   Req,
   Res,
@@ -43,6 +45,31 @@ export class AuthController {
     private readonly configurationService: ConfigurationService,
     private readonly webAuthService: WebAuthService
   ) {}
+
+  @Post('switch/:id')
+  @UseGuards(AuthGuard('jwt'))
+  public async switchUser(
+    @Param('id') targetId: string,
+    @Req() request: Request
+  ): Promise<OAuthResponse> {
+    const token = getAccessIdOfBearerToken(request.headers.authorization);
+    const actor = request.user as { id: string } | undefined;
+
+    if (!token || !actor || request.headers['impersonation-id']) {
+      throw new HttpException(
+        getReasonPhrase(StatusCodes.FORBIDDEN),
+        StatusCodes.FORBIDDEN
+      );
+    }
+
+    return {
+      authToken: await this.authService.switchUser({
+        actorId: actor.id,
+        targetId,
+        token
+      })
+    };
+  }
 
   @Post('anonymous')
   @UseGuards(CustomThrottlerGuard)

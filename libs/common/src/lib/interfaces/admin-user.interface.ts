@@ -4,6 +4,7 @@ import { Provider, RequestClient, Role } from '@ghostfolio/prisma/enums';
 export interface AdminUser {
   accountCount: number;
   activityCount: number;
+  alias: string | null;
   country: string;
   createdAt: Date;
   dailyApiRequests: number;

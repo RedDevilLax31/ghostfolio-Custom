@@ -1216,6 +1216,13 @@ exports[`AppModule should keep the security of each route 1`] = `
     ],
     "interceptors": [],
   },
+  "POST /auth/switch/:id": {
+    "allowDuringImpersonation": true,
+    "guards": [
+      "AuthGuard('jwt')",
+    ],
+    "interceptors": [],
+  },
   "POST /auth/webauthn/generate-authentication-options": {
     "allowDuringImpersonation": true,
     "guards": [
@@ -1491,6 +1498,15 @@ exports[`AppModule should keep the security of each route 1`] = `
     "interceptors": [
       "TransformDataSourceInResponseInterceptor",
     ],
+  },
+  "PUT /users/:id/alias": {
+    "allowDuringImpersonation": false,
+    "guards": [
+      "AuthGuard('jwt')",
+      "HasPermissionGuard",
+    ],
+    "interceptors": [],
+    "permission": "accessAdminControl",
   },
 }
 `;
